@@ -294,7 +294,7 @@ td.w{font-size:1rem}
 /* -- node detail panel -- */
 .nodepanel{position:fixed;inset:auto 0 0 0;z-index:60;background:var(--surface);
   border-top:2px solid var(--lapis);box-shadow:0 -8px 40px -12px rgba(0,0,0,.35);
-  height:52vh;max-height:52vh;overflow-y:auto;transform:translateY(101%);
+  height:34vh;max-height:34vh;min-height:200px;overflow-y:auto;transform:translateY(101%);
   transition:transform .22s cubic-bezier(.2,.7,.3,1);
   overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .nodepanel.open{transform:translateY(0)}
@@ -302,7 +302,13 @@ td.w{font-size:1rem}
 @media(min-width:900px){.nodepanel{inset:0 0 0 auto;max-width:520px;height:auto;max-height:none;
   border-top:0;border-left:2px solid var(--lapis);transform:translateX(101%)}
   .nodepanel.open{transform:translateX(0)}}
-.npi{padding:1.3rem 1.5rem 2.5rem}
+.npi{padding:1.15rem 1.5rem 2.5rem}
+@media(max-width:899px){
+  .nodepanel::before{content:"";position:sticky;top:0;display:block;width:38px;height:4px;
+    margin:0 auto .55rem;border-radius:2px;background:var(--rule);z-index:2}
+  .npi{padding-top:.5rem}
+  .nph{font-size:1.32rem}
+}
 .npclose{position:sticky;top:0;float:right;background:var(--surface);border:1px solid var(--rule);
   border-radius:2px;font-family:"IBM Plex Sans",sans-serif;font-size:.72rem;font-weight:600;
   letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);padding:.32rem .6rem;cursor:pointer}
@@ -343,7 +349,7 @@ td.w{font-size:1rem}
 /* on a phone the sheet fills the lower half, so the graph must sit in the upper half */
 body.sheet-open{overflow:hidden}
 @media(max-width:899px){
-  .plate.lifted #g{height:170px !important}
+  .plate.lifted #g{height:300px !important}
   .plate.lifted .readout,.plate.lifted .plate-foot{display:none}
 }
 
@@ -1665,11 +1671,15 @@ function openPanel(id){
     const plate = document.querySelector(".plate");
     if (plate){
       plate.classList.add("lifted");
-      if (window.selectGraphNode) window.selectGraphNode(id);
-      requestAnimationFrame(() => {
+      // Resizing the canvas reflows the page underneath a smooth scroll, which
+      // silently loses it. Jump instantly, after layout, and re-assert twice.
+      const settle = () => {
         const top = plate.getBoundingClientRect().top + window.scrollY - 8;
-        window.scrollTo({ top, behavior: "smooth" });
-      });
+        if (Math.abs(window.scrollY - top) > 2) window.scrollTo({ top, behavior: "auto" });
+      };
+      requestAnimationFrame(() => requestAnimationFrame(settle));
+      setTimeout(settle, 140);
+      setTimeout(settle, 360);
     }
   }
 }
