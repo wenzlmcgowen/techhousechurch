@@ -300,6 +300,10 @@ td.w{font-size:1rem}
 .thwarn{padding:.8rem 1.1rem;background:#2A2116;border-bottom:1px solid var(--plate-rule);
   font-family:"IBM Plex Sans",sans-serif;font-size:.78rem;line-height:1.5;color:#E8D9B8}
 .thwarn b{color:#F2E4B0}
+.thkey{display:flex;gap:1.1rem;flex-wrap:wrap;margin-top:.6rem;font-size:.7rem;
+  letter-spacing:.05em;text-transform:uppercase;color:#C9BCA0}
+.thkey span{display:inline-flex;align-items:center;gap:.4rem}
+.thkey i{width:14px;height:3px;border-radius:2px;display:block;flex:0 0 auto}
 .thread{border-bottom:1px solid var(--plate-rule);padding:1rem 1.1rem}
 .thread .thh{display:flex;gap:.6rem;align-items:baseline;flex-wrap:wrap;margin-bottom:.2rem}
 .thread .ths{font-family:"IBM Plex Mono",monospace;font-size:.82rem;color:var(--plate-ink-2)}
@@ -311,13 +315,10 @@ td.w{font-size:1rem}
   margin-bottom:.7rem;max-width:74ch}
 .tlink{display:grid;grid-template-columns:auto 1fr;gap:.15rem .7rem;align-items:baseline;
   padding:.5rem 0 .5rem .8rem;border-left:2px solid var(--plate-rule);margin-bottom:.3rem}
-.tlink.tensions_with{border-left-color:#E07A61}
-.tlink.illustrates{border-left-color:#7C9CE8}
-.tlink.extends{border-left-color:#9C7CE8}
-.tlink.presupposes{border-left-color:#7CC8A8}
-.tlink.qualifies{border-left-color:#CBA451}
+.tlink{border-left-color:#7C9CE8}          /* what follows */
+.tlink.tensions_with{border-left-color:#E07A61}  /* what contradicts */
 .tlink .tk{font-family:"IBM Plex Sans",sans-serif;font-size:.58rem;font-weight:600;letter-spacing:.07em;
-  text-transform:uppercase;white-space:nowrap;color:var(--plate-ink-2)}
+  text-transform:uppercase;white-space:nowrap;color:#7C9CE8}
 .tlink.tensions_with .tk{color:#E07A61}
 .tlink .tn{font-family:"EB Garamond",Georgia,serif;font-size:1.03rem;color:var(--plate-ink);
   cursor:pointer;text-decoration:underline;text-decoration-color:transparent;text-underline-offset:3px}
@@ -653,7 +654,7 @@ body.sheet-open{overflow:hidden}
   <div class="shead">
     <span class="label rubric">The graph</span>
     <h2>Every teaching, wired to its witnesses</h2>
-    <p class="lede">Three ways in. The <strong>graph</strong> shows how teachings connect to the works that carry them. The <strong>list</strong> is the same set, ranked and searchable. <strong>Threads</strong> is different in kind &mdash; it asks how the teachings hold together as a body of thought, and where they don&rsquo;t. Switch with the control top right. <strong>Click anything</strong> to open everything the database holds on that teaching &mdash; where it appears, which streams carry it, how its score was computed, and what argues against it. Each small node is a teaching; each ring is a work that carries it. Node size is the canonical formula score, colour bands that same score, so size and colour agree by construction. Hover or tap to read it, click to open it fully.</p>
+    <p class="lede">Three ways in. The <strong>graph</strong> shows how teachings connect to the works that carry them. The <strong>list</strong> is the same set, ranked and searchable. <strong>Threads</strong> is different in kind &mdash; it asks how the teachings hold together as a body of thought, and where they don&rsquo;t. Switch with the control top right. <strong>Click anything</strong> to open everything the database holds on that teaching &mdash; where it appears, which streams carry it, how its score was computed, and what argues against it. Each small node is a teaching; each ring is a work that carries it. <strong>Size is how many connections a node has</strong> &mdash; for a teaching, how many works carry it; for a work, how many teachings it holds. <strong>Colour is the evidence score.</strong> Those two deliberately no longer agree: a fat node is a well-connected one, not a well-attested one, and telling those apart is the whole argument of this page. Hover or tap to read it, click to open it fully.</p>
     <p class="lede"><strong>Aramaic anchors</strong> are a separate class, added in this pass: the twelve places where an Aramaic word survives untranslated inside the Greek &mdash; <em>Talitha koum</em>, <em>Ephphatha</em>, <em>Abba</em>, <em>Korban</em>. They are evidence of an Aramaic-speaking layer in the tradition, so they are kept out of the teaching ranking entirely. Their score means &ldquo;a Semitic element is genuinely preserved here&rdquo;, never &ldquo;Jesus said this.&rdquo;</p>
   </div>
 
@@ -681,14 +682,16 @@ body.sheet-open{overflow:hidden}
       <span class="key"><i style="background:#6B4235"></i>1&ndash;3 very weak</span>
       <span class="key ring"><i></i>Witness work</span>
       <span class="spacer"></span>
-      <span>Edge weight = independence of that witness</span>
+      <span>Size = number of connections &middot; colour = evidence score &middot; edge weight = independence of that witness</span>
     </div>
     <div class="threadview" id="threadview">
       <div class="thwarn"><b>This view is interpretation, not evidence.</b> Everything else on this
         page is a claim about what the sources say. This is a claim about what the teachings
         <em>mean</em> together &mdash; which teaching illustrates another, which one only makes sense
         if another is true, and which ones pull against each other. None of it touches any score.
-        Read it as an argument you are invited to disagree with.</div>
+        Read it as an argument you are invited to disagree with.
+        <div class="thkey"><span><i style="background:#7C9CE8"></i>what follows from it</span>
+          <span><i style="background:#E07A61"></i>what contradicts it</span></div></div>
       <div id="threadrows"></div>
     </div>
     <div class="listview" id="listview">
@@ -1060,14 +1063,12 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     wids.forEach(wid => {
       const w = DATA.works[wid];
       const n = { key:"w"+wid, type:"work", label: SHORT[w.title] || w.title.replace(/^Gospel of /,""),
-                  full:w, r: 7 + Math.sqrt(workAtt[wid]||1) * 1.7,
-                  x:0, y:0, vx:0, vy:0 };
+                  full:w, r: 6, x:0, y:0, vx:0, vy:0 };
       idx[n.key] = nodes.length; nodes.push(n);
     });
     units.forEach(u => {
       const n = { key:"u"+u.id, type:"unit", label:u.title, full:u,
-                  r: 2.6 + (u.rel||0.3) * 7.5,
-                  x:0, y:0, vx:0, vy:0 };
+                  r: 6, x:0, y:0, vx:0, vy:0 };
       idx[n.key] = nodes.length; nodes.push(n);
     });
 
@@ -1078,6 +1079,12 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
 
     nodes.forEach(n => { n.deg = 0; });
     links.forEach(l => { nodes[l.s].deg++; nodes[l.t].deg++; });
+
+    // Size is connections, on ONE scale for works and teachings alike. r grows with the
+    // square root of degree, so the AREA of a circle is what tracks the count -- which is
+    // what the eye actually reads. Note this no longer agrees with colour: colour is the
+    // evidence score. A fat node is a well-connected one, not a well-attested one.
+    nodes.forEach(n => { n.r = 3.2 + Math.sqrt(n.deg || 1) * 2.6; });
 
     // seed: works on a ring by attestation volume, units scattered around
     const nw = wids.length;
