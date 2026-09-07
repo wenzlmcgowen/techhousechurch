@@ -294,11 +294,12 @@ td.w{font-size:1rem}
 /* -- node detail panel -- */
 .nodepanel{position:fixed;inset:auto 0 0 0;z-index:60;background:var(--surface);
   border-top:2px solid var(--lapis);box-shadow:0 -8px 40px -12px rgba(0,0,0,.35);
-  max-height:min(72vh,760px);overflow-y:auto;transform:translateY(101%);
-  transition:transform .22s cubic-bezier(.2,.7,.3,1)}
+  height:52vh;max-height:52vh;overflow-y:auto;transform:translateY(101%);
+  transition:transform .22s cubic-bezier(.2,.7,.3,1);
+  overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .nodepanel.open{transform:translateY(0)}
 @media (prefers-reduced-motion:reduce){.nodepanel{transition:none}}
-@media(min-width:900px){.nodepanel{inset:0 0 0 auto;max-width:520px;max-height:none;
+@media(min-width:900px){.nodepanel{inset:0 0 0 auto;max-width:520px;height:auto;max-height:none;
   border-top:0;border-left:2px solid var(--lapis);transform:translateX(101%)}
   .nodepanel.open{transform:translateX(0)}}
 .npi{padding:1.3rem 1.5rem 2.5rem}
@@ -335,10 +336,16 @@ td.w{font-size:1rem}
 .npexpl{font-family:"IBM Plex Mono",monospace;font-size:.74rem;line-height:1.5;color:var(--ink-3)}
 .npmissing{background:var(--surface-2);border-radius:3px;padding:.75rem .9rem;font-size:.9rem;
   line-height:1.45;color:var(--ink-2)}
-.scrim{position:fixed;inset:0;background:rgba(20,17,9,.28);z-index:59;opacity:0;pointer-events:none;
+.scrim{position:fixed;inset:0;background:transparent;z-index:59;opacity:0;pointer-events:none;
   transition:opacity .22s}
 .scrim.open{opacity:1;pointer-events:auto}
 @media(min-width:900px){.scrim{background:rgba(20,17,9,.14)}}
+/* on a phone the sheet fills the lower half, so the graph must sit in the upper half */
+body.sheet-open{overflow:hidden}
+@media(max-width:899px){
+  .plate.lifted #g{height:170px !important}
+  .plate.lifted .readout,.plate.lifted .plate-foot{display:none}
+}
 
 /* -- coverage -- */
 .gaps2{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1px;
@@ -1614,10 +1621,25 @@ function openPanel(id){
   el.innerHTML = html;
   p.classList.add("open"); sc.classList.add("open");
   p.scrollTop = 0;
+
+  // On a phone the sheet occupies the lower half. Shrink the graph and scroll it
+  // into the upper half so you can still see what you tapped.
+  if (window.matchMedia("(max-width:899px)").matches){
+    const plate = document.querySelector(".plate");
+    if (plate){
+      plate.classList.add("lifted");
+      requestAnimationFrame(() => {
+        const top = plate.getBoundingClientRect().top + window.scrollY - 8;
+        window.scrollTo({ top, behavior: "smooth" });
+      });
+    }
+  }
 }
 function closePanel(){
   document.getElementById("nodepanel").classList.remove("open");
   document.getElementById("scrim").classList.remove("open");
+  const plate = document.querySelector(".plate");
+  if (plate) plate.classList.remove("lifted");
 }
 document.addEventListener("keydown", e => { if (e.key === "Escape") closePanel(); });
 document.addEventListener("DOMContentLoaded", () => {
