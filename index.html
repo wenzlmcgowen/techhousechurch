@@ -566,11 +566,11 @@ body.sheet-open{overflow:hidden}
     </div>
     <canvas id="g" height="560"></canvas>
     <div class="plate-foot">
-      <span class="key"><i style="background:#C9A227"></i>85%+</span>
-      <span class="key"><i style="background:#4E8DC4"></i>70%+</span>
-      <span class="key"><i style="background:#7E8AA0"></i>55%+</span>
-      <span class="key"><i style="background:#A45340"></i>40%+</span>
-      <span class="key"><i style="background:#6B4235"></i>under 40%</span>
+      <span class="key"><i style="background:#C9A227"></i>9&ndash;10 strongest</span>
+      <span class="key"><i style="background:#4E8DC4"></i>7&ndash;8 strong</span>
+      <span class="key"><i style="background:#7E8AA0"></i>6 moderate</span>
+      <span class="key"><i style="background:#A45340"></i>4&ndash;5 weak</span>
+      <span class="key"><i style="background:#6B4235"></i>1&ndash;3 very weak</span>
       <span class="key ring"><i></i>Witness work</span>
       <span class="spacer"></span>
       <span>Edge weight = independence of that witness</span>
@@ -587,7 +587,9 @@ body.sheet-open{overflow:hidden}
     <h2>What survives the discount</h2>
     <p class="lede">One number per teaching: the <strong>evidence score</strong>. It is worked out by counting how many <em>independent</em> sources carry the teaching, discounting the ones that were copying each other, and subtracting for bundled units, unstable text, and later theological expansion.</p>
     <p class="lede">Nothing here is a guess. Every score can be taken apart into the evidence that produced it &mdash; <strong>click any row</strong> and you get the whole derivation, witness by witness.</p>
-    <p class="lede"><strong>What the percentage is not.</strong> 94% does <em>not</em> mean a 94% chance he said it. No honest method can give you that number. It is a strength rating out of 100, and it compares teachings against each other &mdash; a teaching at 94% rests on far better evidence than one at 45%, and that comparison is the whole use of it.</p>
+    <p class="lede"><strong>Out of 10, and nothing reaches 10.</strong> The best-attested teaching in the corpus scores <strong>9</strong>. That is not modesty &mdash; it is what the evidence supports, and a 10 would have to mean something no first-century saying can claim.</p>
+    <p class="lede">The scale is deliberately coarse. Across 125 teachings the formula produces only 37 distinct values, so a finer number would be inventing precision. It is also <em>absolute</em>: a teaching&rsquo;s score never changes because some other teaching was added or removed. And it is <strong>not a probability</strong> &mdash; a 9 does not mean a 90% chance he said it. It means the evidence is about as strong as evidence here gets.</p>
+    <p class="lede"><strong>Teachings sharing a number are tied.</strong> Six of these score 9, and there is no honest way to rank one above another &mdash; the evidence does not separate them. The bar is drawn from the finer underlying figure so you can see which way it leans, but do not read much into a difference the number itself refuses to make.</p>
   </div>
   <div class="ladder" id="ladder"></div>
 </section>
@@ -896,9 +898,12 @@ const BAND_STOPS = [
   [0.00, "#6B4235", "very low"]
 ];
 function bandOf(score){
-  const s = (score == null) ? 0 : score;
-  for (const [min, col, label] of BAND_STOPS) if (s >= min) return {col, label};
-  return {col: "#6B4235", label: "very low"};
+  const v = (score == null) ? 0 : Math.max(1, Math.min(10, Math.round(score * 10)));
+  if (v >= 9) return {col: "#C9A227", label: "strongest"};
+  if (v >= 7) return {col: "#4E8DC4", label: "strong"};
+  if (v >= 6) return {col: "#7E8AA0", label: "moderate"};
+  if (v >= 4) return {col: "#A45340", label: "weak"};
+  return {col: "#6B4235", label: "very weak"};
 }
 const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
 
@@ -1137,7 +1142,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
       readout.innerHTML =
         '<h4>' + esc(u.title) + '</h4>' +
         '<p class="meta">' + esc(bandOf(u.rel).label) + ' \u00b7 ' + esc(u.unit_type) +
-        (u.rel != null ? ' \u00b7 evidence strength ' + pct(u.rel) : '') +
+        (u.rel != null ? ' \u00b7 strength ' + pct(u.rel) : '') +
         ' \u00b7 substrate ' + esc(u.substrate_confidence || "unreviewed") + '</p>' +
         '<p class="body">' + esc(u.core_content || u.historical_notes || "") + '</p>';
     }
@@ -1599,7 +1604,7 @@ function openPanel(id){
 
   if (d.score != null)
     html += '<div class="npscore"><b>' + pct(d.score) + '</b>' +
-      '<span>evidence strength<br>out of 100, not a probability</span></div>';
+      '<span>evidence strength<br>out of 10 \u00b7 nothing reaches 10</span></div>';
 
   if (d.core)
     html += '<div class="npsec"><h4>What it says</h4><p class="npbody">' + esc(d.core) + '</p></div>';
@@ -1703,7 +1708,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Scores are shown out of 100 for legibility. They are NOT probabilities --
 // see the note under the ladder.
-function pct(x){ return (x == null) ? "\u2014" : Math.round(x * 100) + "%"; }
+function out10(x){ return (x == null) ? "\u2014" : Math.max(1, Math.min(10, Math.round(x * 10))); }
+function pct(x){ return out10(x) + "/10"; }
 
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 </script>
