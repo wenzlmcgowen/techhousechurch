@@ -30,7 +30,7 @@ A blank is honest. A guess is not.
 
 ## What is most useful right now
 
-**Adopt a citation.** See [adopt.html](https://techhousechurch.com/adopt.html). Pick a
+**Adopt a citation.** See [adopt.html](https://techhousechurch.org/adopt.html). Pick a
 work, find where it makes the listed claim, send the page. Thirty seconds per entry
 once the book is open. This is the largest gap in the project and the one part that
 genuinely needs a human with library access.

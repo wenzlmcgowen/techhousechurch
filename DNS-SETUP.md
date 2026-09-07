@@ -1,4 +1,4 @@
-# DNS setup — techhousechurch.com
+# DNS setup — techhousechurch.org
 
 **This is the only step Claude cannot do.** GoDaddy needs your login and SMS
 verification, and Claude does not enter credentials or verification codes on any
@@ -9,7 +9,15 @@ custom domain registered. The site is waiting on DNS and nothing else.
 
 ## What to do (about 5 minutes)
 
-GoDaddy → **My Products** → techhousechurch.com → **DNS** → **Manage Zones**
+GoDaddy → **My Products** → techhousechurch.org → **DNS** → **Manage Zones**
+
+### ⚠️ Do not touch the email records
+
+The order included **Microsoft 365 Email Essentials**, so GoDaddy will add records for
+it: `MX`, plus `TXT` records for SPF/DKIM, plus `autodiscover` and `_domainconnect`
+CNAMEs. **Leave every one of them alone.** Deleting them breaks email at this domain.
+
+Only the records named below get changed.
 
 ### 1. Delete the parking record
 
