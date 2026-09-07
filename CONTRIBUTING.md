@@ -27,6 +27,10 @@ A blank is honest. A guess is not.
    summarised as such.
 5. **When earlier work turns out to be wrong, the correction goes in visibly** — beside
    the original claim, not over the top of it.
+6. **Interpretation is kept in a separate room from evidence.** The Threads view argues
+   about what the teachings *mean* together. Every link there is stored as
+   `claim_kind = 'interpretation'` and `affects_score = 0`. No reading of a teaching may
+   ever move an evidence score, however persuasive it is.
 
 ## What is most useful right now
 
@@ -40,6 +44,12 @@ the Syriac Gospels* (NTTS 21/1–4, Brill 1996).
 
 **Source an objection.** Eight rows in the attribution-risk register are recorded but
 unsourced, and score nothing until they are.
+
+**Add or break a thread.** The Threads view has 27 links so far — 7 of them tensions,
+places where two well-attested teachings pull against each other. If you can see a
+connection we missed, or think one of ours is wrong, say which two teachings and why.
+This is the one part of the project where the standard is a *good argument* rather than
+a citation, and where disagreement is the expected outcome.
 
 **Argue with it.** If something here is wrong, the fix is a source, not an opinion.
 
