@@ -130,6 +130,7 @@ section{margin-top:clamp(3.4rem,7vw,5.2rem)}
 .seg button[aria-pressed="true"]{background:var(--plate-ink);color:var(--plate)}
 .spacer{flex:1 1 auto}
 canvas{display:block;width:100%;touch-action:pan-y}
+#g{height:560px}
 .plate-foot{
   display:flex;gap:1.4rem;flex-wrap:wrap;align-items:center;
   padding:.8rem 1.1rem;border-top:1px solid var(--plate-rule);background:var(--plate-2);
@@ -349,7 +350,8 @@ td.w{font-size:1rem}
 /* on a phone the sheet fills the lower half, so the graph must sit in the upper half */
 body.sheet-open{overflow:hidden}
 @media(max-width:899px){
-  .plate.lifted #g{height:300px !important}
+  #g{height:300px}
+  .plate.lifted #g{height:300px}
   .plate.lifted .readout,.plate.lifted .plate-foot{display:none}
 }
 
@@ -564,11 +566,11 @@ body.sheet-open{overflow:hidden}
     </div>
     <canvas id="g" height="560"></canvas>
     <div class="plate-foot">
-      <span class="key"><i style="background:#C9A227"></i>0.85+</span>
-      <span class="key"><i style="background:#4E8DC4"></i>0.70+</span>
-      <span class="key"><i style="background:#7E8AA0"></i>0.55+</span>
-      <span class="key"><i style="background:#A45340"></i>0.40+</span>
-      <span class="key"><i style="background:#6B4235"></i>below 0.40</span>
+      <span class="key"><i style="background:#C9A227"></i>85%+</span>
+      <span class="key"><i style="background:#4E8DC4"></i>70%+</span>
+      <span class="key"><i style="background:#7E8AA0"></i>55%+</span>
+      <span class="key"><i style="background:#A45340"></i>40%+</span>
+      <span class="key"><i style="background:#6B4235"></i>under 40%</span>
       <span class="key ring"><i></i>Witness work</span>
       <span class="spacer"></span>
       <span>Edge weight = independence of that witness</span>
@@ -585,6 +587,7 @@ body.sheet-open{overflow:hidden}
     <h2>What survives the discount</h2>
     <p class="lede">One number per teaching: the <strong>evidence score</strong>. It is worked out by counting how many <em>independent</em> sources carry the teaching, discounting the ones that were copying each other, and subtracting for bundled units, unstable text, and later theological expansion.</p>
     <p class="lede">Nothing here is a guess. Every score can be taken apart into the evidence that produced it &mdash; <strong>click any row</strong> and you get the whole derivation, witness by witness.</p>
+    <p class="lede"><strong>What the percentage is not.</strong> 94% does <em>not</em> mean a 94% chance he said it. No honest method can give you that number. It is a strength rating out of 100, and it compares teachings against each other &mdash; a teaching at 94% rests on far better evidence than one at 45%, and that comparison is the whole use of it.</p>
   </div>
   <div class="ladder" id="ladder"></div>
 </section>
@@ -1134,7 +1137,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
       readout.innerHTML =
         '<h4>' + esc(u.title) + '</h4>' +
         '<p class="meta">' + esc(bandOf(u.rel).label) + ' \u00b7 ' + esc(u.unit_type) +
-        (u.rel != null ? ' \u00b7 evidence score ' + u.rel.toFixed(2) : '') +
+        (u.rel != null ? ' \u00b7 evidence strength ' + pct(u.rel) : '') +
         ' \u00b7 substrate ' + esc(u.substrate_confidence || "unreviewed") + '</p>' +
         '<p class="body">' + esc(u.core_content || u.historical_notes || "") + '</p>';
     }
@@ -1167,10 +1170,12 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
 
   function resize(){
     dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const lifted = cv.closest(".plate") && cv.closest(".plate").classList.contains("lifted");
-    W = cv.clientWidth; H = lifted ? 170 : 560;
-    cv.width = W * dpr; cv.height = H * dpr;
-    cv.style.height = H + "px";
+    // Read the height CSS actually rendered. Hardcoding it here once disagreed
+    // with the stylesheet and the browser stretched the drawing, turning every
+    // circle into an ellipse. One source of truth only.
+    W = cv.clientWidth;
+    H = Math.round(cv.getBoundingClientRect().height) || 560;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     view.init = false;   // refit the camera to the new frame
   }
   // the detail panel drives the selection so you can see what you opened
@@ -1198,7 +1203,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
         '<span class="open">open \u2192</span></span></span>' +
       '<span class="track">' +
         '<span class="rel" style="width:' + (u.rel*100).toFixed(1) + '%"></span></span>' +
-      '<span class="nums"><b>' + u.rel.toFixed(2) + '</b></span>' +
+      '<span class="nums"><b>' + pct(u.rel) + '</b></span>' +
       '</button>';
   }).join("");
   el.addEventListener("click", e => {
@@ -1370,7 +1375,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
   el.innerHTML = DATA.ar.map(r =>
     '<div class="ar">' +
       '<div class="arh"><span class="rst ' + esc(r.st) + '">' + esc(r.st.replace(/_/g," ")) + '</span>' +
-        (r.rk ? '<span class="rk">canonical <b>#' + r.rk + '</b> \u00b7 ' + r.sc.toFixed(2) + '</span>' : '') +
+        (r.rk ? '<span class="rk">ranked <b>#' + r.rk + '</b> \u00b7 ' + pct(r.sc) + '</span>' : '') +
         '<span class="un">' + esc(r.unit || r.slug) + '</span>' +
         '<span class="chip">' + esc(r.rt.replace(/_/g," ")) + '</span></div>' +
       '<p class="obs">' + esc(r.obs) + '</p>' +
@@ -1593,8 +1598,8 @@ function openPanel(id){
     '</div>';
 
   if (d.score != null)
-    html += '<div class="npscore"><b>' + d.score.toFixed(2) + '</b>' +
-      '<span>evidence score<br>derived below, not estimated</span></div>';
+    html += '<div class="npscore"><b>' + pct(d.score) + '</b>' +
+      '<span>evidence strength<br>out of 100, not a probability</span></div>';
 
   if (d.core)
     html += '<div class="npsec"><h4>What it says</h4><p class="npbody">' + esc(d.core) + '</p></div>';
@@ -1695,6 +1700,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const s = document.getElementById("scrim");
   if (s) s.addEventListener("click", closePanel);
 });
+
+// Scores are shown out of 100 for legibility. They are NOT probabilities --
+// see the note under the ladder.
+function pct(x){ return (x == null) ? "\u2014" : Math.round(x * 100) + "%"; }
 
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 </script>
