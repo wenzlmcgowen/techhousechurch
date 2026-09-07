@@ -366,6 +366,13 @@ td.w{font-size:1rem}
   .npi{padding-top:.5rem}
   .nph{font-size:1.32rem}
 }
+.npnav{position:sticky;top:0;float:right;display:flex;gap:.3rem;align-items:center;z-index:3}
+.npnav button{background:var(--surface);border:1px solid var(--rule);border-radius:2px;
+  font-family:"IBM Plex Sans",sans-serif;font-size:.72rem;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink-2);padding:.32rem .55rem;cursor:pointer}
+.npnav button:hover:not(:disabled){background:var(--surface-2);border-color:var(--lapis)}
+.npnav button:disabled{opacity:.35;cursor:default}
+.npnav .pos{font-family:"IBM Plex Mono",monospace;font-size:.7rem;color:var(--ink-3);padding:0 .2rem}
 .npclose{position:sticky;top:0;float:right;background:var(--surface);border:1px solid var(--rule);
   border-radius:2px;font-family:"IBM Plex Sans",sans-serif;font-size:.72rem;font-weight:600;
   letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);padding:.32rem .6rem;cursor:pointer}
@@ -401,7 +408,8 @@ td.w{font-size:1rem}
   line-height:1.45;color:var(--ink-2)}
 .scrim{position:fixed;inset:0;background:transparent;z-index:59;opacity:0;pointer-events:none;
   transition:opacity .22s}
-.scrim.open{opacity:1;pointer-events:auto}
+.scrim.open{pointer-events:none}   /* never intercept: the graph stays clickable */
+.scrim.open{opacity:1}
 @media(min-width:900px){.scrim{background:rgba(20,17,9,.14)}}
 /* on a phone the sheet fills the lower half, so the graph must sit in the upper half */
 body.sheet-open{overflow:hidden}
@@ -1716,6 +1724,23 @@ function readLinks(work, ref){
 
 /* == node detail panel ================================= */
 let PANEL_LANG = "en", PANEL_ID = null;
+// Stepping follows the ranking you are looking at, so arrows move the way the eye does.
+function panelOrder(){
+  const plate = document.querySelector(".plate");
+  const lane = document.querySelector('.seg [data-lane][aria-pressed="true"]');
+  const laneV = lane ? lane.dataset.lane : "teaching";
+  return DATA.units
+    .filter(u => laneV === "all" || u.lane === laneV)
+    .sort((a,b) => (b.rel||0) - (a.rel||0))
+    .map(u => u.id);
+}
+function stepPanel(delta){
+  const order = panelOrder(), i = order.indexOf(PANEL_ID);
+  if (i < 0) return;
+  const j = i + delta;
+  if (j < 0 || j >= order.length) return;
+  openPanel(order[j]);
+}
 function openPanel(id){
   PANEL_ID = id;
   const d = DATA.detail && DATA.detail[id];
@@ -1723,7 +1748,13 @@ function openPanel(id){
         sc = document.getElementById("scrim");
   if (!d || !el) return;
   const chip = t => '<span class="chip">' + esc(t) + '</span>';
-  let html = '<button class="npclose" onclick="closePanel()">close</button>' +
+  const order = panelOrder(), pos = order.indexOf(id);
+  let html = '<span class="npnav">' +
+      '<button type="button" data-step="-1"' + (pos <= 0 ? ' disabled' : '') + ' title="Previous (\u2190)">\u2190</button>' +
+      '<span class="pos">' + (pos >= 0 ? (pos + 1) + " / " + order.length : "") + '</span>' +
+      '<button type="button" data-step="1"' + (pos < 0 || pos >= order.length - 1 ? ' disabled' : '') + ' title="Next (\u2192)">\u2192</button>' +
+      '<button type="button" onclick="closePanel()">close</button>' +
+    '</span>' +
     '<h3 class="nph">' + esc(d.title) + '</h3>' +
     '<div class="npmeta">' + chip(d.type.replace(/_/g," ")) +
       (d.band ? chip(d.band) : '') +
@@ -1861,6 +1892,8 @@ function openPanel(id){
   el.innerHTML = html;
   el.querySelectorAll("[data-goto]").forEach(b =>
     b.addEventListener("click", () => openPanel(+b.dataset.goto)));
+  el.querySelectorAll("[data-step]").forEach(b =>
+    b.addEventListener("click", () => stepPanel(+b.dataset.step)));
   el.querySelectorAll("[data-lang]").forEach(b =>
     b.addEventListener("click", () => {
       PANEL_LANG = b.dataset.lang;
@@ -1876,7 +1909,8 @@ function openPanel(id){
   // into the upper half so you can still see what you tapped.
   if (window.matchMedia("(max-width:899px)").matches){
     const plate = document.querySelector(".plate");
-    if (plate){
+    const alreadyOpen = p.classList.contains("open") && plate && plate.classList.contains("lifted");
+    if (plate && !alreadyOpen){
       plate.classList.add("lifted");
       // Resizing the canvas reflows the page underneath a smooth scroll, which
       // silently loses it. Jump instantly, after layout, and re-assert twice.
@@ -1897,7 +1931,13 @@ function closePanel(){
   if (plate) plate.classList.remove("lifted");
   if (window.clearGraphNode) window.clearGraphNode();
 }
-document.addEventListener("keydown", e => { if (e.key === "Escape") closePanel(); });
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { closePanel(); return; }
+  const open = document.getElementById("nodepanel").classList.contains("open");
+  if (!open || /^(INPUT|TEXTAREA)$/.test((e.target.tagName || ""))) return;
+  if (e.key === "ArrowLeft")  { e.preventDefault(); stepPanel(-1); }
+  if (e.key === "ArrowRight") { e.preventDefault(); stepPanel(1); }
+});
 document.addEventListener("DOMContentLoaded", () => {
   const s = document.getElementById("scrim");
   if (s) s.addEventListener("click", closePanel);
