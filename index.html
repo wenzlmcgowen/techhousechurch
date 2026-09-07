@@ -294,18 +294,23 @@ td.w{font-size:1rem}
 
 /* -- list view -- */
 .viewseg{margin-left:auto}
-.listview{display:none;background:var(--plate);max-height:560px;overflow-y:auto}
+.listview{display:none;background:var(--plate);max-height:640px;overflow-y:auto}
 .plate.aslist .listview{display:block}
 .plate.aslist #g,.plate.aslist .plate-foot,.plate.aslist .readout{display:none}
 .lrow{display:grid;grid-template-columns:auto 1fr;gap:.15rem .8rem;align-items:baseline;
   width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--plate-rule);
-  padding:.6rem 1.1rem;cursor:pointer;font:inherit;color:var(--plate-ink)}
+  padding:.75rem 1.1rem;cursor:pointer;font:inherit;color:var(--plate-ink)}
 .lrow:hover{background:var(--plate-2)}
 .lrow .ls{font-family:"IBM Plex Mono",monospace;font-size:.82rem;font-variant-numeric:tabular-nums;
   white-space:nowrap;display:flex;align-items:center;gap:.4rem}
 .lrow .ls i{width:9px;height:9px;border-radius:50%;display:block}
 .lrow .lt{font-family:"EB Garamond",Georgia,serif;font-size:1.02rem;line-height:1.25}
+.lrow .lc{grid-column:2;font-family:"EB Garamond",Georgia,serif;font-size:.98rem;line-height:1.42;
+  color:var(--plate-ink);opacity:.86;margin:.18rem 0 .22rem;max-width:74ch}
+.lrow .lref{grid-column:2;font-family:"IBM Plex Mono",monospace;font-size:.74rem;color:#8FA8D8;
+  line-height:1.45;margin-bottom:.15rem}
 .lrow .lm{grid-column:2;font-family:"IBM Plex Sans",sans-serif;font-size:.7rem;color:var(--plate-ink-2)}
+@media(max-width:620px){.lrow .lc{font-size:1rem}}
 .listhead{display:flex;gap:.6rem;align-items:center;padding:.55rem 1.1rem;background:var(--plate-2);
   border-bottom:1px solid var(--plate-rule);font-family:"IBM Plex Sans",sans-serif;font-size:.72rem;
   color:var(--plate-ink-2);position:sticky;top:0;z-index:2}
@@ -1215,16 +1220,23 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     const cnt = document.getElementById("lcount");
     const q = (document.getElementById("lsearch").value || "").toLowerCase().trim();
     let items = DATA.units.filter(u => lane === "all" || u.lane === lane);
-    if (q) items = items.filter(u =>
-      (u.title + " " + (u.unit_type||"") + " " + ((DATA.detail[u.id]||{}).streams||"")).toLowerCase().includes(q));
+    if (q) items = items.filter(u => {
+      const t = DATA.detail[u.id] || {};
+      const hay = [u.title, u.unit_type, t.streams, t.core,
+                   (t.refs||[]).map(r => r.ref).join(" ")].join(" ").toLowerCase();
+      return hay.includes(q);
+    });
     items.sort((a,b) => (b.rel||0) - (a.rel||0));
     if (cnt) cnt.textContent = items.length + (items.length === 1 ? " teaching" : " teachings");
     rowsEl.innerHTML = items.map(u => {
       const det = DATA.detail[u.id] || {};
       const b = bandOf(u.rel);
+      const refs = (det.refs || []).map(r => r.ref).filter(Boolean);
       return '<button class="lrow" type="button" data-uid="' + u.id + '">' +
         '<span class="ls"><i style="background:' + b.col + '"></i>' + pct(u.rel) + '</span>' +
         '<span class="lt">' + esc(u.title) + '</span>' +
+        (det.core ? '<span class="lc">' + esc(det.core) + '</span>' : '') +
+        (refs.length ? '<span class="lref">' + esc(refs.join("  \u00b7  ")) + '</span>' : '') +
         '<span class="lm">' + esc(u.unit_type ? u.unit_type.replace(/_/g," ") : "") +
           (det.streams ? ' \u00b7 ' + esc(det.streams) : '') +
           (det.refs ? ' \u00b7 ' + det.refs.length + ' witness' + (det.refs.length===1?'':'es') : '') +
