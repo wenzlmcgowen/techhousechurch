@@ -1672,12 +1672,28 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
    Nothing is stored here. These point outward: public-domain English,
    the open Greek, and for non-canonical works the standard free editions.
    All targets checked 2026-09-07. */
+// Keyed on BOTH the full work title and the shortened display name, because refs
+// carry the display form ("Thomas") while the database holds "Gospel of Thomas".
+// Keying only one way silently produced dead ends on six of eleven works.
 const ECW = {
-  "Gospel of Thomas":"thomas", "Didache":"didache", "Gospel of Peter":"gospelpeter",
-  "Gospel of Mary":"gospelmary", "Gospel of the Hebrews / Nazoreans / Ebionites":"gospelhebrews",
-  "Infancy Gospel of Thomas":"infancythomas", "Protoevangelium of James":"infancyjames",
-  "Josephus":"josephus", "Tacitus Annals":"tacitus", "Nag Hammadi Library":"thomas"
+  "Gospel of Thomas":"thomas", "Thomas":"thomas",
+  "Didache":"didache",
+  "Gospel of Peter":"gospelpeter", "Peter":"gospelpeter",
+  "Gospel of Mary":"gospelmary", "Mary":"gospelmary",
+  "Gospel of the Hebrews / Nazoreans / Ebionites":"gospelhebrews",
+  "the Hebrews / Nazoreans / Ebionites":"gospelhebrews",
+  "Infancy Gospel of Thomas":"infancythomas", "Infancy Thomas":"infancythomas",
+  "Protoevangelium of James":"infancyjames",
+  "Josephus":"josephus", "Tacitus Annals":"tacitus",
+  "Nag Hammadi Library":"__nag__"
 };
+// The Nag Hammadi rows are two distinct texts, so route on the reference itself.
+function nagSlug(ref){
+  const r = (ref || "").toLowerCase();
+  if (r.indexOf("dialogue") !== -1) return "dialoguesavior";
+  if (r.indexOf("great seth") !== -1 || r.indexOf("second treatise") !== -1) return "greatseth";
+  return null;
+}
 const CANON = ["Mark","Matthew","Luke","John","Pauline letters","Letter of James"];
 function readLinks(work, ref){
   const out = [];
@@ -1691,7 +1707,9 @@ function readLinks(work, ref){
     const g = ref.replace(/\s+/,".").replace(/:/g,".");
     out.push({label:"Greek (SBLGNT)", url:"https://www.stepbible.org/?q=version=SBLG|reference=" + encodeURIComponent(g)});
   } else if (ECW[work]) {
-    out.push({label:"read (free edition)", url:"https://www.earlychristianwritings.com/" + ECW[work] + ".html"});
+    const slug = (ECW[work] === "__nag__") ? nagSlug(ref) : ECW[work];
+    if (slug) out.push({label:"read (free edition)",
+      url:"https://www.earlychristianwritings.com/" + slug + ".html"});
   }
   return out;
 }
@@ -1746,7 +1764,11 @@ function openPanel(id){
           'appear in Nestle 1904 at all. It is a later scribal addition, carried by some English ' +
           'Bibles but not present in the critical text. The silence is the evidence.</p>';
       } else if (!body){
-        textHtml = '<p class="npmissing">No public-domain text held for this one \u2014 use the link.</p>';
+        const hasLink = links && links.indexOf("href") !== -1;
+        textHtml = '<p class="npmissing">' + (hasLink
+          ? 'Not held here \u2014 this work is outside the public-domain Bible text, so the link below opens it at a free edition.'
+          : 'No public-domain text held, and no free edition to point at. Q is a reconstruction, so there is no manuscript to read.')
+          + '</p>';
       }
       html += '<div class="npref"><span class="w">' + esc(r.work) + '</span>' +
         '<span class="r">' + esc(r.ref || "") + '</span>' +
