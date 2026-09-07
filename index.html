@@ -150,11 +150,25 @@ canvas{display:block;width:100%;touch-action:pan-y}
 
 /* -- ladder --------------------------------------------- */
 .ladder{display:flex;flex-direction:column;border-top:1px solid var(--rule)}
+.ladderkey{display:flex;flex-wrap:wrap;gap:1.1rem;align-items:center;margin-bottom:.9rem;
+  font-family:"IBM Plex Sans",sans-serif;font-size:.78rem;color:var(--ink-2)}
+.ladderkey span{display:flex;align-items:center;gap:.42rem}
+.ladderkey .swatch{width:26px;height:9px;background:var(--lapis);border-radius:1px;display:block}
+.ladderkey .swtick{width:26px;height:14px;position:relative;display:block}
+.ladderkey .swtick::after{content:"";position:absolute;left:12px;top:0;width:2px;height:14px;background:var(--minium)}
 .rung{
   display:grid;grid-template-columns:1.15fr minmax(140px,.85fr) auto;
   gap:.5rem 1.1rem;align-items:center;
-  padding:.72rem 0;border-bottom:1px solid var(--rule-soft);
+  padding:.72rem .5rem;border-bottom:1px solid var(--rule-soft);
+  cursor:pointer;border-radius:2px;transition:background .12s;
+  width:100%;text-align:left;background:transparent;border-left:0;border-right:0;border-top:0;
+  font:inherit;color:inherit;
 }
+.rung:hover{background:var(--surface-2)}
+.rung:focus-visible{outline:2px solid var(--lapis);outline-offset:-2px}
+.rung .open{font-family:"IBM Plex Sans",sans-serif;font-size:.62rem;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--lapis);opacity:0;transition:opacity .12s}
+.rung:hover .open{opacity:1}
 .rung .name{display:flex;flex-direction:column;gap:.18rem;min-width:0}
 .rung .t{font-size:1.06rem;line-height:1.25}
 .rung .tags{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
@@ -166,8 +180,8 @@ canvas{display:block;width:100%;touch-action:pan-y}
 .chip.sub{color:var(--gold);border-color:var(--gold)}
 .chip.evt{color:var(--minium);border-color:var(--minium-soft)}
 .track{position:relative;height:9px;background:var(--surface-2);border-radius:1px;overflow:hidden}
-.track .raw{position:absolute;inset:0 auto 0 0;background:var(--lapis-soft)}
 .track .rel{position:absolute;inset:0 auto 0 0;background:var(--lapis)}
+.track .tick{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--minium);border-radius:1px}
 .rung .nums{font-family:"IBM Plex Mono",monospace;font-size:.78rem;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink-3)}
 .rung .nums b{color:var(--ink);font-weight:500}
 @media(max-width:640px){
@@ -556,7 +570,14 @@ td.w{font-size:1rem}
   <div class="shead">
     <span class="label rubric">The ladder</span>
     <h2>What survives the discount</h2>
-    <p class="lede">Ranked by the canonical formula. The pale bar is the hand-assigned score; the solid bar is what the formula computes from stored evidence &mdash; weighted streams, bundle and variant penalties, late-expansion flags.</p>
+    <p class="lede">Every teaching here carries <strong>two</strong> numbers, and they often disagree.</p>
+    <p class="lede">The <strong style="color:var(--lapis)">blue bar</strong> is the <strong>evidence score</strong> &mdash; what the database works out by counting independent witnesses, discounting the ones that were copying, and applying penalties for bundling and later additions. That is the ranking.</p>
+    <p class="lede">The <strong style="color:var(--minium)">red tick</strong> is the <strong>first human guess</strong> &mdash; a number someone typed in early, from reading the teaching, before any of the counting was done. It has never been overwritten. <em>Where the tick sits far from the end of the bar, a person and the evidence disagree</em>, and that gap is more interesting than either number alone.</p>
+    <p class="lede"><strong>Click any row</strong> to open everything behind it.</p>
+  </div>
+  <div class="ladderkey">
+    <span><i class="swatch"></i> evidence score &mdash; the ranking</span>
+    <span><i class="swtick"></i> first human guess</span>
   </div>
   <div class="ladder" id="ladder"></div>
 </section>
@@ -1120,14 +1141,24 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     const sub = (u.substrate_confidence && u.substrate_confidence !== "unreviewed")
       ? '<span class="chip sub">substrate ' + esc(String(u.substrate_confidence).split(";")[0].slice(0,14)) + '</span>' : "";
     const evt = u.lane === "event_story" ? '<span class="chip evt">event</span>' : "";
-    return '<div class="rung">' +
-      '<div class="name"><span class="t">' + esc(u.title) + '</span>' +
-        '<span class="tags"><span class="chip">' + esc(u.unit_type) + '</span>' + evt + sub + '</span></div>' +
-      '<div class="track"><span class="raw" style="width:' + (u.probability_score*100).toFixed(1) + '%"></span>' +
-        '<span class="rel" style="width:' + (u.rel*100).toFixed(1) + '%"></span></div>' +
-      '<div class="nums"><b>' + u.rel.toFixed(3) + '</b> <span style="opacity:.6">\u2190 ' + u.probability_score.toFixed(2) + '</span></div>' +
-      '</div>';
+    const gap = Math.abs(u.rel - u.probability_score) > 0.15;
+    return '<button class="rung" type="button" data-uid="' + u.id + '">' +
+      '<span class="name"><span class="t">' + esc(u.title) + '</span>' +
+        '<span class="tags"><span class="chip">' + esc(u.unit_type) + '</span>' + evt + sub +
+        (gap ? '<span class="chip evt">person disagrees</span>' : '') +
+        '<span class="open">open \u2192</span></span></span>' +
+      '<span class="track">' +
+        '<span class="rel" style="width:' + (u.rel*100).toFixed(1) + '%"></span>' +
+        '<span class="tick" style="left:calc(' + (u.probability_score*100).toFixed(1) + '% - 1px)" ' +
+          'title="first human guess: ' + u.probability_score.toFixed(2) + '"></span></span>' +
+      '<span class="nums"><b>' + u.rel.toFixed(2) + '</b> ' +
+        '<span style="opacity:.65;color:var(--minium)">' + u.probability_score.toFixed(2) + '</span></span>' +
+      '</button>';
   }).join("");
+  el.addEventListener("click", e => {
+    const b = e.target.closest(".rung");
+    if (b && b.dataset.uid) openPanel(+b.dataset.uid);
+  });
 })();
 
 /* == 3. slope chart ==================================== */
