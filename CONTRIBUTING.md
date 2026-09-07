@@ -43,6 +43,28 @@ unsourced, and score nothing until they are.
 
 **Argue with it.** If something here is wrong, the fix is a source, not an opinion.
 
+## Sending a resource
+
+Send anything — a book, a paper, a video, a channel. Each one gets the same treatment
+before it goes anywhere near the database:
+
+1. **Verified.** Author, title, year, publisher, series. Checked, not recalled.
+2. **Stance recorded.** Confessional, critical, popular, contested — noted in the
+   entry's `caution` field. This is not a judgement on quality. Bauckham, Wright and
+   Crossan are all cited here, each with its position flagged.
+3. **Level assessed.** A peer-reviewed monograph and a YouTube explainer are both
+   useful and are not the same thing. Popular-level material is welcome for
+   orientation; it does not become a citation the database leans on.
+4. **Wired only where it bears.** A source is attached to the specific claims it
+   actually speaks to, not added to a pile.
+
+Worked example: a Septuagint video led to Lanier & Ross, *The Septuagint: What It Is
+and Why It Matters* (Crossway, 2021) being added — verified, flagged as an evangelical
+publisher with both authors at a confessional seminary, and wired to the three claims
+where Greek Old Testament wording genuinely bears. The video's other presenter, an
+apologist and PhD candidate, was not added as a source. Good orientation, not
+citable scholarship. Both calls are recorded.
+
 ## How to send something
 
 Open an issue or a pull request on this repository. Every change is reviewed before it
