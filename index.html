@@ -900,7 +900,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
   const readout = document.getElementById("readout");
   const countsEl = document.getElementById("counts");
   let lane = "teaching";
-  let nodes = [], links = [], hot = null, dpr = 1, W = 0, H = 0, alpha = 1;
+  let nodes = [], links = [], hot = null, selected = null, dpr = 1, W = 0, H = 0, alpha = 1;
   const view = { s: 1, cx: 0, cy: 0, init: false };
   const SHORT = {
     "Gospel of the Hebrews / Nazoreans / Ebionites": "Hebrews/Naz.",
@@ -1001,17 +1001,24 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
   function draw(){
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,W,H);
-    // fit the camera to the layout so nothing clips at the edges
+    // Normally fit everything. But once a node is selected, zoom to just that
+    // teaching and the works that carry it -- otherwise it is a speck in a crowd.
+    let fitSet = nodes;
+    if (selected){
+      const si = nodes.indexOf(selected), keep = new Set([si]);
+      links.forEach(l => { if (l.s === si) keep.add(l.t); if (l.t === si) keep.add(l.s); });
+      fitSet = nodes.filter((n,i) => keep.has(i));
+    }
     let minX=1e9, maxX=-1e9, minY=1e9, maxY=-1e9;
-    for (const n of nodes){
-      const pad = n.type === "work" ? n.r + 26 : n.r + 2;
+    for (const n of fitSet){
+      const pad = n.type === "work" ? n.r + 34 : n.r + 22;
       if (n.x-pad < minX) minX = n.x-pad;
       if (n.x+pad > maxX) maxX = n.x+pad;
       if (n.y-pad < minY) minY = n.y-pad;
       if (n.y+pad > maxY) maxY = n.y+pad;
     }
     const bw = Math.max(maxX-minX,1), bh = Math.max(maxY-minY,1), m = 14;
-    const tS = Math.min((W-m*2)/bw, (H-m*2)/bh, 1.6);
+    const tS = Math.min((W-m*2)/bw, (H-m*2)/bh, selected ? 4.5 : 1.6);
     const tX = (minX+maxX)/2, tY = (minY+maxY)/2;
     if (!view.init){ view.s = tS; view.cx = tX; view.cy = tY; view.init = true; }
     else { view.s += (tS-view.s)*0.07; view.cx += (tX-view.cx)*0.07; view.cy += (tY-view.cy)*0.07; }
@@ -1021,7 +1028,8 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     ctx.scale(view.s, view.s);
     ctx.translate(-view.cx, -view.cy);
 
-    const hotIdx = hot ? nodes.indexOf(hot) : -1;
+    const focus = selected || hot;
+    const hotIdx = focus ? nodes.indexOf(focus) : -1;
     const near = new Set();
     if (hotIdx >= 0) links.forEach(l => {
       if (l.s === hotIdx) near.add(l.t);
@@ -1047,26 +1055,46 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
         ctx.fillStyle = "#15120E"; ctx.fill();
         ctx.strokeStyle = PLATE_INK; ctx.lineWidth = 1.2; ctx.stroke();
       } else {
-        ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,6.2832);
-        ctx.fillStyle = bandOf(n.full.rel).col; ctx.fill();
-        if (i === hotIdx){
-          ctx.strokeStyle = PLATE_INK; ctx.lineWidth = 1.4; ctx.stroke();
+        const isSel = selected && n === selected;
+        if (isSel){
+          const k = 1 / Math.max(view.s, 0.001);   // keep the marker constant on screen
+          ctx.globalAlpha = 1;
+          ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 14*k, 0, 6.2832);
+          ctx.fillStyle = "rgba(242,228,176,0.16)"; ctx.fill();
+          ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 8*k, 0, 6.2832);
+          ctx.strokeStyle = "#F2E4B0"; ctx.lineWidth = 2.5*k; ctx.stroke();
         }
+        ctx.beginPath(); ctx.arc(n.x, n.y, isSel ? n.r + 1.5 : n.r, 0, 6.2832);
+        ctx.fillStyle = bandOf(n.full.rel).col; ctx.fill();
+        if (isSel){ ctx.strokeStyle = "#15120E"; ctx.lineWidth = 1.2; ctx.stroke(); }
+        else if (i === hotIdx){ ctx.strokeStyle = PLATE_INK; ctx.lineWidth = 1.4; ctx.stroke(); }
       }
       ctx.globalAlpha = 1;
     }
 
+    if (selected){
+      const k = 1 / Math.max(view.s, 0.001);
+      const lbl = selected.full.title.length > 30 ? selected.full.title.slice(0,29) + "\u2026" : selected.full.title;
+      ctx.font = "600 " + (11*k).toFixed(1) + "px 'IBM Plex Sans', sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+      const tw = ctx.measureText(lbl).width, ty = selected.y - selected.r - 17*k;
+      ctx.fillStyle = "rgba(14,12,8,0.92)";
+      ctx.fillRect(selected.x - tw/2 - 5*k, ty - 13*k, tw + 10*k, 15*k);
+      ctx.fillStyle = "#F2E4B0"; ctx.fillText(lbl, selected.x, ty);
+    }
+
     // work labels last, over the top, on a small backdrop so they stay legible
-    ctx.font = "600 8.5px 'IBM Plex Sans', sans-serif";
+    const wk = selected ? 1 / Math.max(view.s, 0.001) : 1;
+    ctx.font = "600 " + (8.5*wk).toFixed(1) + "px 'IBM Plex Sans', sans-serif";
     ctx.textAlign = "center"; ctx.textBaseline = "top";
     for (let i = 0; i < nodes.length; i++){
       const n = nodes[i];
       if (n.type !== "work") continue;
       const dim = hotIdx >= 0 && i !== hotIdx && !near.has(i);
       ctx.globalAlpha = dim ? 0.28 : 1;
-      const tw = ctx.measureText(n.label).width, ty = n.y + n.r + 3;
+      const tw = ctx.measureText(n.label).width, ty = n.y + n.r + 3*wk;
       ctx.fillStyle = "rgba(14,12,8,0.82)";
-      ctx.fillRect(n.x - tw/2 - 2, ty - 1, tw + 4, 11);
+      ctx.fillRect(n.x - tw/2 - 2*wk, ty - 1*wk, tw + 4*wk, 11*wk);
       ctx.fillStyle = dim ? PLATE_DIM : PLATE_INK;
       ctx.fillText(n.label, n.x, ty);
       ctx.globalAlpha = 1;
@@ -1133,10 +1161,18 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
 
   function resize(){
     dpr = Math.min(window.devicePixelRatio || 1, 2);
-    W = cv.clientWidth; H = 560;
+    const lifted = cv.closest(".plate") && cv.closest(".plate").classList.contains("lifted");
+    W = cv.clientWidth; H = lifted ? 170 : 560;
     cv.width = W * dpr; cv.height = H * dpr;
     cv.style.height = H + "px";
+    view.init = false;   // refit the camera to the new frame
   }
+  // the detail panel drives the selection so you can see what you opened
+  window.selectGraphNode = function(uid){
+    selected = nodes.find(n => n.type === "unit" && n.full && n.full.id === uid) || null;
+    resize();
+  };
+  window.clearGraphNode = function(){ selected = null; resize(); };
   window.addEventListener("resize", resize);
   resize(); build();
   (function loop(){ tick(); draw(); requestAnimationFrame(loop); })();
@@ -1621,6 +1657,7 @@ function openPanel(id){
   el.innerHTML = html;
   p.classList.add("open"); sc.classList.add("open");
   p.scrollTop = 0;
+  if (window.selectGraphNode) window.selectGraphNode(id);
 
   // On a phone the sheet occupies the lower half. Shrink the graph and scroll it
   // into the upper half so you can still see what you tapped.
@@ -1628,6 +1665,7 @@ function openPanel(id){
     const plate = document.querySelector(".plate");
     if (plate){
       plate.classList.add("lifted");
+      if (window.selectGraphNode) window.selectGraphNode(id);
       requestAnimationFrame(() => {
         const top = plate.getBoundingClientRect().top + window.scrollY - 8;
         window.scrollTo({ top, behavior: "smooth" });
@@ -1640,6 +1678,7 @@ function closePanel(){
   document.getElementById("scrim").classList.remove("open");
   const plate = document.querySelector(".plate");
   if (plate) plate.classList.remove("lifted");
+  if (window.clearGraphNode) window.clearGraphNode();
 }
 document.addEventListener("keydown", e => { if (e.key === "Escape") closePanel(); });
 document.addEventListener("DOMContentLoaded", () => {
