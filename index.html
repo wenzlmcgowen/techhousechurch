@@ -311,6 +311,9 @@ td.w{font-size:1rem}
 .npref .r{font-family:"IBM Plex Mono",monospace;font-size:.86rem;color:var(--lapis)}
 .npref .dt{font-family:"IBM Plex Mono",monospace;font-size:.7rem;color:var(--ink-3);white-space:nowrap}
 .npref .ly{grid-column:1/-1;font-size:.8rem;color:var(--ink-3)}
+.npref .npl{margin-top:.15rem;font-family:"IBM Plex Sans",sans-serif;font-size:.76rem}
+.npref .npl a{color:var(--lapis);text-decoration:none;border-bottom:1px solid var(--lapis-soft)}
+.npref .npl a:hover{border-bottom-color:var(--lapis)}
 .npnote{font-size:.94rem;line-height:1.45;color:var(--ink-2);border-left:2px solid var(--gold);
   padding-left:.7rem;margin-bottom:.5rem}
 .npwarn{font-size:.94rem;line-height:1.45;color:var(--ink-2);border-left:2px solid var(--minium);
@@ -1472,6 +1475,34 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
   }).join("");
 })();
 
+/* == where to actually read the text ==================
+   Nothing is stored here. These point outward: public-domain English,
+   the open Greek, and for non-canonical works the standard free editions.
+   All targets checked 2026-09-07. */
+const ECW = {
+  "Gospel of Thomas":"thomas", "Didache":"didache", "Gospel of Peter":"gospelpeter",
+  "Gospel of Mary":"gospelmary", "Gospel of the Hebrews / Nazoreans / Ebionites":"gospelhebrews",
+  "Infancy Gospel of Thomas":"infancythomas", "Protoevangelium of James":"infancyjames",
+  "Josephus":"josephus", "Tacitus Annals":"tacitus", "Nag Hammadi Library":"thomas"
+};
+const CANON = ["Mark","Matthew","Luke","John","Pauline letters","Letter of James"];
+function readLinks(work, ref){
+  const out = [];
+  if (!ref) return out;
+  const short = work.replace(/^Gospel of /,"");
+  if (/^Q\b|hypothesis/i.test(work))
+    return [{label:"reconstruction \u2014 no manuscript exists", url:null}];
+  if (CANON.some(w => short.indexOf(w) === 0 || work.indexOf(w) === 0)){
+    out.push({label:"read (public domain)",
+      url:"https://www.biblegateway.com/passage/?search=" + encodeURIComponent(ref) + "&version=WEB"});
+    const g = ref.replace(/\s+/,".").replace(/:/g,".");
+    out.push({label:"Greek (SBLGNT)", url:"https://www.stepbible.org/?q=version=SBLG|reference=" + encodeURIComponent(g)});
+  } else if (ECW[work]) {
+    out.push({label:"read (free edition)", url:"https://www.earlychristianwritings.com/" + ECW[work] + ".html"});
+  }
+  return out;
+}
+
 /* == node detail panel ================================= */
 function openPanel(id){
   const d = DATA.detail && DATA.detail[id];
@@ -1497,14 +1528,18 @@ function openPanel(id){
     html += '<div class="npsec"><h4>Where it appears &mdash; ' + d.refs.length + ' witness' +
       (d.refs.length>1?'es':'') + '</h4>';
     d.refs.forEach(r => {
+      const links = readLinks(r.work, r.ref).map(l => l.url
+        ? '<a href="' + l.url + '" target="_blank" rel="noopener noreferrer">' + esc(l.label) + ' \u2197</a>'
+        : '<span style="color:var(--ink-3)">' + esc(l.label) + '</span>').join(' <span style="color:var(--rule)">\u00b7</span> ');
       html += '<div class="npref"><span class="w">' + esc(r.work) + '</span>' +
         '<span class="r">' + esc(r.ref || "") + '</span>' +
         '<span class="dt">c.' + esc(r.d) + ' CE</span>' +
         '<span class="ly">' + esc(r.layer || "") +
-        (r.iw != null ? ' \u00b7 independence ' + r.iw.toFixed(2) : '') + '</span></div>';
+        (r.iw != null ? ' \u00b7 independence ' + r.iw.toFixed(2) : '') + '</span>' +
+        (links ? '<span class="ly npl">' + links + '</span>' : '') + '</div>';
     });
-    html += '<p class="npmissing" style="margin-top:.7rem">The <em>text</em> of these passages is not stored here. ' +
-      'Adding it needs an openly-licensed edition \u2014 that work is queued.</p></div>';
+    html += '<p class="npmissing" style="margin-top:.7rem">No text is stored here \u2014 these links open the ' +
+      'passage in a public-domain English edition, or the open Greek, on someone else\u2019s site.</p></div>';
   }
 
   if (d.expl)
