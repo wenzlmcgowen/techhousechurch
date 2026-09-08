@@ -491,6 +491,42 @@ td.w{font-size:1rem}
 @media(min-width:900px){.nodepanel{inset:0 0 0 auto;max-width:520px;height:auto;max-height:none;
   border-top:0;border-left:2px solid var(--lapis);transform:translateX(101%)}
   .nodepanel.open{transform:translateX(0)}}
+.linkpanel{position:fixed;inset:auto 0 0 0;z-index:61;background:var(--surface);
+  border-top:2px solid var(--minium);box-shadow:0 -8px 40px -12px rgba(0,0,0,.35);
+  height:34vh;max-height:34vh;min-height:200px;overflow-y:auto;transform:translateY(101%);
+  transition:transform .22s cubic-bezier(.2,.7,.3,1);
+  overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.linkpanel.open{transform:translateY(0)}
+@media (prefers-reduced-motion:reduce){.linkpanel{transition:none}}
+@media(min-width:900px){.linkpanel{inset:0 0 0 auto;max-width:520px;height:auto;
+  max-height:none;border-top:0;border-left:2px solid var(--minium);
+  transform:translateX(101%)}
+  .linkpanel.open{transform:translateX(0)}}
+.lpi{padding:1.15rem 1.5rem 2.5rem}
+.lph{font-family:"EB Garamond",Georgia,serif;font-size:1.3rem;line-height:1.25;
+  margin:.2rem 0 .1rem}
+.lpvs{font-family:"IBM Plex Sans",sans-serif;font-size:.6rem;font-weight:600;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--minium);margin:.3rem 0}
+.lpsec{margin-top:1.15rem;border-top:1px solid var(--rule);padding-top:.8rem}
+.lpsec h4{font-family:"IBM Plex Sans",sans-serif;font-size:.6rem;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:.4rem}
+.lpsec p{font-size:.97rem;line-height:1.55;color:var(--ink-2);max-width:62ch}
+.lpsec p+p{margin-top:.5rem}
+.lpq{font-family:"EB Garamond",Georgia,serif;font-size:1.02rem;line-height:1.6;
+  color:var(--ink);background:var(--surface-2,rgba(0,0,0,.03));border-left:2px solid var(--rule);
+  padding:.6rem .8rem;margin:.4rem 0 .2rem}
+.lpq.grk{font-size:1.06rem}
+.lpref{font-family:"IBM Plex Mono",monospace;font-size:.74rem;color:var(--ink-3);
+  margin-top:.6rem}
+.lpwho{font-family:"IBM Plex Mono",monospace;font-size:.78rem;color:var(--ink-3)}
+.lpbtn{display:inline-flex;gap:.35rem;align-items:center;font:inherit;
+  font-family:"IBM Plex Sans",sans-serif;font-size:.66rem;font-weight:600;
+  letter-spacing:.05em;text-transform:uppercase;background:transparent;
+  color:var(--plate-ink-2);border:1px solid var(--plate-rule);border-radius:2px;
+  padding:.2rem .5rem;cursor:pointer;margin:.45rem .35rem 0 0}
+.lpbtn:hover{border-color:#F2E4B0;color:#F2E4B0}
+.tlink .lpacts{grid-column:2}
+@media(max-width:640px){.tlink .lpacts{grid-column:1}}
 .npi{padding:1.15rem 1.5rem 2.5rem}
 @media(max-width:899px){
   .nodepanel::before{content:"";position:sticky;top:0;display:block;width:38px;height:4px;
@@ -1158,6 +1194,7 @@ body.sheet-open{overflow:hidden}
 </section>
 
 <div class="scrim" id="scrim"></div>
+<aside class="linkpanel" id="linkpanel" aria-live="polite" aria-label="Connection detail"><div class="lpi" id="lpi"></div></aside>
 <aside class="nodepanel" id="nodepanel" aria-live="polite" aria-label="Teaching detail"><div class="npi" id="npi"></div></aside>
 
 <p class="foot">
@@ -1512,6 +1549,156 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
   const LT = {illustrates:"illustrates", extends:"pushes further", presupposes:"only works if",
               qualifies:"qualifies", tensions_with:"pulls against",
               anchors:"keeps the Aramaic"};
+  // What each relation is actually asserting, spelled out. The row shows the
+  // short label because it has to fit; the panel has room to say what it means.
+  const LTLONG = {
+    illustrates:"The second makes the first concrete \u2014 the same point as a story, " +
+      "an image or a case rather than a statement.",
+    extends:"The second takes the first further than the first goes on its own.",
+    presupposes:"The first does not make sense unless the second is true. Remove the " +
+      "second and the first becomes unintelligible rather than merely harder.",
+    qualifies:"The second narrows, conditions or complicates the first.",
+    tensions_with:"The two pull against each other. This is not resolved here, by us " +
+      "or by the sources.",
+    anchors:"An untranslated Aramaic word survives inside this teaching. That is a " +
+      "fact about how the text was carried, not a reading of what it means."};
+  const STLONG = {
+    textual:"Checkable. You can open the book and verify the claim without trusting us.",
+    contested:"We assert this point is argued over among scholars \u2014 and you have " +
+      "only our word for that. No citation in this database attaches to a link in " +
+      "this layer.",
+    ours:"Our own reading. Nothing behind it but judgement."};
+  const LK = [];   // every rendered link, so a button can find its own data
+
+  function lkRegister(a, b, l){
+    LK.push({a: a, b: b, lt: l.lt, why: l.why, adds: l.adds, st: l.st,
+             assoc: l.a, af: l.af, ab: l.ab, sev: l.sev});
+    return LK.length - 1;
+  }
+  function lkButtons(i){
+    return '<span class="lpacts">' +
+      '<button type="button" class="lpbtn" data-li="' + i + '" data-mode="why">' +
+        'Explain connection</button>' +
+      '<button type="button" class="lpbtn" data-li="' + i + '" data-mode="quotes">' +
+        'Show full quotes</button></span>';
+  }
+
+  function closeLinkPanel(){
+    document.getElementById("linkpanel").classList.remove("open");
+    const sc = document.getElementById("scrim");
+    if (sc && !document.getElementById("nodepanel").classList.contains("open"))
+      sc.classList.remove("open");
+  }
+  window.closeLinkPanel = closeLinkPanel;
+
+  function lpHead(L){
+    const A = DATA.detail[L.a] || {}, B = DATA.detail[L.b] || {};
+    return '<span class="npnav"><button type="button" onclick="closeLinkPanel()">' +
+        'close</button></span>' +
+      '<h3 class="lph">' + esc(A.title || "") + '</h3>' +
+      '<div class="lpvs">' + esc(LT[L.lt] || L.lt) + '</div>' +
+      '<h3 class="lph">' + esc(B.title || "") + '</h3>' +
+      '<p class="lpwho">' + pct(A.score) + ' \u00b7 ' + pct(B.score) + '</p>';
+  }
+
+  function openLinkWhy(L){
+    const A = DATA.detail[L.a] || {}, B = DATA.detail[L.b] || {};
+    let s = lpHead(L) +
+      '<div class="lpsec"><h4>What this relation claims</h4><p>' +
+        esc(LTLONG[L.lt] || "") + '</p></div>' +
+      '<div class="lpsec"><h4>Why</h4><p>' + esc(L.why || "") + '</p></div>' +
+      (L.adds ? '<div class="lpsec"><h4>What it brings that its parent did not</h4><p>' +
+        esc(L.adds) + '</p></div>' : '') +
+      '<div class="lpsec"><h4>How much weight it carries</h4><p>' +
+        esc(STLONG[L.st] || STLONG.ours) + '</p></div>';
+    if (L.assoc != null){
+      s += '<div class="lpsec"><h4>How far the leap is</h4>' +
+        '<p><b>' + L.assoc + ' of 10</b> on the creative-association dial. ' +
+        (L.assoc <= 5
+          ? 'Computed, not assigned: ' + esc(L.ab || "") + '.'
+          : 'Assigned by hand. Levels above 5 are ours \u2014 6 means no editor put ' +
+            'these together, 8 that the link runs against the surface of one text, ' +
+            '10 that it is a frankly modern reading.') +
+        (L.af != null && L.assoc > L.af
+          ? ' Raised from a computed floor of ' + L.af + '; judgement may raise this ' +
+            'number and may never lower it.'
+          : '') + '</p></div>';
+    }
+    if (L.lt === "tensions_with" && L.sev != null){
+      const band = L.sev >= 7 ? "hard to escape" : L.sev >= 4 ? "real"
+                 : "dissolves under doubt";
+      s += '<div class="lpsec"><h4>How hard this contradiction is to escape</h4>' +
+        '<p><b>' + esc(band) + '</b>. Severity comes from the evidence score of the ' +
+        'weaker side, scaled by how close the two sit in the text \u2014 a ' +
+        'contradiction is only as strong as its weaker half, because that is the ' +
+        'half you doubt to make it go away.</p></div>';
+    }
+    s += '<div class="lpsec"><h4>Open either teaching in full</h4>' +
+      '<p><button type="button" class="lpbtn" data-uid="' + L.a + '">' +
+        esc(A.title || "") + '</button>' +
+      '<button type="button" class="lpbtn" data-uid="' + L.b + '">' +
+        esc(B.title || "") + '</button></p></div>';
+    return s;
+  }
+
+  function lpQuotes(uid){
+    const d = DATA.detail[uid] || {};
+    const refs = d.refs || [];
+    if (!refs.length)
+      return '<p class="lpref">No passage text held here.</p>';
+    return refs.map(r => {
+      const body = (PANEL_LANG === "gr") ? r.gr : r.en;
+      return '<div>' +
+        '<p class="lpref">' + esc(r.work || "") + ' \u00b7 ' + esc(r.ref || "") + '</p>' +
+        (body
+          ? '<p class="lpq' + (PANEL_LANG === "gr" ? " grk" : "") + '">' + esc(body) + '</p>'
+          : '<p class="lpref">' + (PANEL_LANG === "gr" && r.noGreek
+              ? "Absent from the Greek \u2014 a later scribal addition, not in the critical text."
+              : "Not held here.") + '</p>') +
+      '</div>';
+    }).join("");
+  }
+
+  function openLinkQuotes(L){
+    const A = DATA.detail[L.a] || {}, B = DATA.detail[L.b] || {};
+    return lpHead(L) +
+      '<div class="lpsec"><h4>Read both sides</h4>' +
+        '<div class="langbar"><span class="seg" role="group" aria-label="Language">' +
+        '<button type="button" data-lplang="en" aria-pressed="' + (PANEL_LANG==="en") +
+          '">English</button>' +
+        '<button type="button" data-lplang="gr" aria-pressed="' + (PANEL_LANG==="gr") +
+          '">Greek</button></span></div></div>' +
+      '<div class="lpsec"><h4>' + esc(A.title || "") + ' \u00b7 ' + pct(A.score) +
+        '</h4>' + lpQuotes(L.a) + '</div>' +
+      '<div class="lpsec"><h4>' + esc(B.title || "") + ' \u00b7 ' + pct(B.score) +
+        '</h4>' + lpQuotes(L.b) + '</div>';
+  }
+
+  let LP_LAST = null;
+  function openLink(i, mode){
+    const L = LK[i];
+    if (!L) return;
+    LP_LAST = [i, mode];
+    const el = document.getElementById("lpi"), p = document.getElementById("linkpanel");
+    el.innerHTML = (mode === "quotes") ? openLinkQuotes(L) : openLinkWhy(L);
+    document.getElementById("nodepanel").classList.remove("open");
+    p.classList.add("open");
+    const sc = document.getElementById("scrim");
+    if (sc) sc.classList.add("open");
+    el.scrollTop = 0;
+  }
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-li]");
+    if (b){ openLink(+b.dataset.li, b.dataset.mode); return; }
+    const lang = e.target.closest("[data-lplang]");
+    if (lang && LP_LAST){
+      PANEL_LANG = lang.dataset.lplang;
+      openLink(LP_LAST[0], LP_LAST[1]);
+      return;
+    }
+    const u = e.target.closest(".linkpanel [data-uid]");
+    if (u){ closeLinkPanel(); openPanel(+u.dataset.uid); }
+  });
   // How much weight a link can bear. "checkable" does not mean true -- it means
   // a reader can verify it without trusting us. The default is "our reading",
   // because understating our own authority is the safe failure here.
@@ -1574,7 +1761,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     return (list || []).reduce((n, l) => n + 1 + countRows(l.kids), 0);
   }
 
-  function threadKids(list, depth){
+  function threadKids(list, depth, parent){
     if (!list || !list.length) return "";
     return '<div class="tkids">' + list.map(l =>
       '<div class="tlink ' + esc(l.lt) + '">' +
@@ -1588,7 +1775,8 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
         (l.ab ? '<span class="tab">association ' + l.a +
           (l.a > l.af ? ' \u2014 raised by hand from ' + l.af + ' (' + esc(l.ab) + ')'
                       : ' \u2014 ' + esc(l.ab)) + '</span>' : '') +
-        threadKids(l.kids, depth + 1) +
+        lkButtons(lkRegister(parent, l.id, l)) +
+        threadKids(l.kids, depth + 1, l.id) +
       '</div>').join("") + '</div>';
   }
 
@@ -1598,6 +1786,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     if (!el || !T || !T.roots) return;
     const order = (THSORT === "conn") ? T.byConn : T.byScore;
     const byId = {}; T.roots.forEach(r => byId[r.id] = r);
+    LK.length = 0;
     const shown = order.map(id => byId[id]).filter(Boolean)
       .filter(t => inSrc(t.id))
       .map(t => Object.assign({}, t, {links: prune(t.links)}))
@@ -1612,7 +1801,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
             (t.tens ? '<b class="tstr"> \u00b7 ' + t.tens + ' pull against</b>' : '') +
           '</span></div>' +
         (t.core ? '<p class="thc">' + esc(t.core) + '</p>' : '') +
-        threadKids(t.links, 0) +
+        threadKids(t.links, 0, t.id) +
       '</div>').join("") ||
       '<div style="padding:1.2rem;color:var(--plate-ink-2)">Nothing at this setting. ' +
       'Turn the dial up.</div>';
@@ -1749,6 +1938,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     const el = document.getElementById("cxrows");
     const C = (DATA.threads && DATA.threads.contra) || [];
     if (!el) return;
+    LK.length = 0;
     const rows = C.filter(x => cxTier(x.sev) >= CXDIAL && inSrc(x.a) && inSrc(x.b));
     el.innerHTML = rows.map(x =>
       '<div class="cxrow">' +
@@ -1767,6 +1957,9 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
         '<p class="cxbasis">weaker side ' + pct(x.weak) +
           (x.ab ? ' \u00b7 ' + esc(x.ab) : '') +
           ' \u00b7 internal score ' + x.sev + '/10, approximate</p>' +
+        lkButtons(lkRegister(x.a, x.b,
+          {lt:'tensions_with', why:x.why, adds:x.adds, st:x.st,
+           a:x.assoc, af:null, ab:x.ab, sev:x.sev})) +
       '</div>').join("") ||
       '<div style="padding:1.2rem;color:var(--plate-ink-2)">Nothing this severe. ' +
       'Turn the dial down.</div>';
@@ -2264,6 +2457,7 @@ function stepPanel(delta){
   openPanel(order[j]);
 }
 function openPanel(id){
+  if (window.closeLinkPanel) window.closeLinkPanel();
   PANEL_ID = id;
   const d = DATA.detail && DATA.detail[id];
   const el = document.getElementById("npi"), p = document.getElementById("nodepanel"),
@@ -2449,6 +2643,7 @@ function openPanel(id){
   }
 }
 function closePanel(){
+  if (window.closeLinkPanel) window.closeLinkPanel();
   document.getElementById("nodepanel").classList.remove("open");
   document.getElementById("scrim").classList.remove("open");
   const plate = document.querySelector(".plate");
