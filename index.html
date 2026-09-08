@@ -789,13 +789,13 @@ body.sheet-open{overflow:hidden}
         near each other, and filling this view with them would have been the easiest
         possible way to make the corpus look more broken than it is.</div>
       <div class="thdial">
-        <div class="dh"><span class="lbl">Severity, at least</span>
-          <span class="val" id="cxval">1</span>
+        <div class="dh"><span class="lbl">Show at least</span>
+          <span class="val" id="cxval">everything</span>
           <span class="cnt" id="cxcnt"></span></div>
-        <input type="range" id="cxdial" min="1" max="10" value="1" step="1"
-               aria-label="Minimum contradiction severity">
-        <div class="ends"><span>1 &middot; doubt one side and it goes away</span>
-          <span>10 &middot; no way out</span></div>
+        <input type="range" id="cxdial" min="1" max="3" value="1" step="1"
+               aria-label="Minimum contradiction severity band">
+        <div class="ends"><span>doubt one side and it goes away</span>
+          <span>hard to escape</span></div>
         <div class="say" id="cxsay"></div>
       </div>
       <div class="srcpick" id="cxsrc"></div>
@@ -1672,20 +1672,25 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
   window.refreshThreads = renderThreads;
 
   // ---- contradictions: the same tensions, pulled out and ranked -------------
+  // Three stops, not ten. The 1-10 number was audited a phase after it shipped:
+  // perturbing the proximity constants -- which were chosen by feel -- moves 46%
+  // of the exact numbers and swaps two to four of the "top ten". Bands hold at
+  // 81%. The digit is kept for thresholding and demoted to the small print; the
+  // band is what gets published, because the band is what the data supports.
   let CXDIAL = 1;
+  function cxTier(s){ return s >= 7 ? 3 : s >= 4 ? 2 : 1; }
   function cxBand(s){
-    return s >= 9 ? "no way out" : s >= 7 ? "hard" :
-           s >= 5 ? "real" : s >= 3 ? "soft" : "dissolves under doubt";
+    return s >= 7 ? "hard to escape" : s >= 4 ? "real" : "dissolves under doubt";
   }
+  const CXLABEL = {1:"everything", 2:"real and above", 3:"hard to escape only"};
   function renderContra(){
     const el = document.getElementById("cxrows");
     const C = (DATA.threads && DATA.threads.contra) || [];
     if (!el) return;
-    const rows = C.filter(x => x.sev >= CXDIAL && inSrc(x.a) && inSrc(x.b));
+    const rows = C.filter(x => cxTier(x.sev) >= CXDIAL && inSrc(x.a) && inSrc(x.b));
     el.innerHTML = rows.map(x =>
       '<div class="cxrow">' +
-        '<div class="cxh"><span class="cxs">' + x.sev + '/10</span>' +
-          '<span class="cxband">' + esc(cxBand(x.sev)) + '</span>' +
+        '<div class="cxh"><span class="cxs">' + esc(cxBand(x.sev)) + '</span>' +
           '<span class="tst ' + esc(x.st || "ours") + '">' +
             esc(ST[x.st] || ST.ours) + '</span></div>' +
         '<div class="cxpair">' +
@@ -1697,8 +1702,9 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
         '</div>' +
         '<p class="cxwhy">' + esc(x.why) + '</p>' +
         (x.adds ? '<p class="cxadds"><b>brings in</b>' + esc(x.adds) + '</p>' : '') +
-        '<p class="cxbasis">severity ' + x.sev + ' \u2014 weaker side ' + pct(x.weak) +
-          (x.ab ? ' \u00b7 ' + esc(x.ab) : '') + '</p>' +
+        '<p class="cxbasis">weaker side ' + pct(x.weak) +
+          (x.ab ? ' \u00b7 ' + esc(x.ab) : '') +
+          ' \u00b7 internal score ' + x.sev + '/10, approximate</p>' +
       '</div>').join("") ||
       '<div style="padding:1.2rem;color:var(--plate-ink-2)">Nothing this severe. ' +
       'Turn the dial down.</div>';
@@ -1711,7 +1717,13 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
       'contradiction is only as strong as its weaker half, because that is the half ' +
       'you doubt to make it go away \u2014 and a clash inside one chapter cannot be ' +
       'blamed on two communities. Judgement may only lower a severity, never raise ' +
-      'it, since overstating incoherence is the failure this scale can produce.';
+      'it, since overstating incoherence is the failure this scale can produce.' +
+      '<br><br><b>Three bands, not ten points.</b> This scale shipped as a 1\u201310 ' +
+      'number and was audited a day later. Perturbing the distance constants \u2014 ' +
+      'which were chosen by feel \u2014 across four plausible alternatives moves 46% ' +
+      'of the exact numbers and swaps two to four of what it calls the ten hardest. ' +
+      'Bands survive the same test at 81%. So the digit is kept for filtering, ' +
+      'printed small and marked approximate, and the band is what is claimed.';
     srcNote("cxsrc", rows.length, C.length);
   }
   document.getElementById("cxrows").addEventListener("click", e => {
@@ -1722,7 +1734,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     if (!d) return;
     d.addEventListener("input", () => {
       CXDIAL = +d.value;
-      document.getElementById("cxval").textContent = d.value;
+      document.getElementById("cxval").textContent = CXLABEL[CXDIAL];
       renderContra();
     });
   })();
