@@ -340,6 +340,22 @@ td.w{font-size:1rem}
 .srcpick .w[aria-pressed="true"]{background:var(--plate-ink);color:#17130F;
   border-color:var(--plate-ink)}
 .srcpick .note{margin-top:.5rem;font-size:.74rem;line-height:1.5;color:var(--plate-ink-2)}
+.thmode{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap;
+  padding:.7rem 1.1rem;border-bottom:1px solid var(--plate-rule);background:#1B1611}
+.thmode .lbl{font-family:"IBM Plex Sans",sans-serif;font-size:.62rem;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--plate-ink-2)}
+.thmode button{font:inherit;font-family:"IBM Plex Sans",sans-serif;font-size:.78rem;
+  background:transparent;color:var(--plate-ink-2);border:1px solid var(--plate-rule);
+  border-radius:2px;padding:.2rem .6rem;cursor:pointer}
+.thmode button[aria-pressed="true"]{background:var(--plate-ink);color:#17130F;
+  border-color:var(--plate-ink)}
+.thmode .n{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:.72rem;
+  color:var(--plate-ink-2)}
+#tg{display:block;width:100%;height:420px;background:var(--plate);cursor:pointer}
+@media(max-width:640px){#tg{height:300px}}
+.tgfoot{padding:.55rem 1.1rem;border-bottom:1px solid var(--plate-rule);
+  background:var(--plate);font-family:"IBM Plex Sans",sans-serif;font-size:.76rem;
+  color:var(--plate-ink-2);line-height:1.45}
 .thsort{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap;
   padding:.7rem 1.1rem;border-bottom:1px solid var(--plate-rule);background:#1B1611}
 .thsort .lbl{font-family:"IBM Plex Sans",sans-serif;font-size:.62rem;font-weight:600;
@@ -879,6 +895,14 @@ body.sheet-open{overflow:hidden}
           <span>10 &middot; we did</span></div>
         <div class="say" id="dialsay"></div>
       </div>
+      <div class="thmode">
+        <span class="lbl">Show</span>
+        <button type="button" data-tm="conn" aria-pressed="true">Supporting connections</button>
+        <button type="button" data-tm="conf" aria-pressed="false">Contradictions</button>
+        <span class="n" id="thmn"></span>
+      </div>
+      <canvas id="tg" height="420"></canvas>
+      <div class="tgfoot" id="tgfoot">Tap a teaching to open its thread.</div>
       <div class="srcpick" id="thsrc"></div>
       <div class="thstat" id="thstat"></div>
       <div class="thsort">
@@ -1555,7 +1579,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
       plate.classList.toggle("asthreads", v === "threads");
       plate.classList.toggle("ascontra", v === "contra");
       if (v === "list") renderList();
-      else if (v === "threads") renderThreads();
+      else if (v === "threads"){ renderThreads(); tgBuild(); tgResize(); }
       else if (v === "contra") renderContra();
       else resize();
     });
@@ -1733,6 +1757,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
   // note the page prints under the slider. Hiding a link hides its whole branch:
   // a child you reached through a hidden parent was never on your path.
   let THDIAL = 4;
+  let THFOCUS = null;   // a teaching clicked in the graph, or null for all
   // Which works a reader is willing to count. A link is shown only if BOTH of
   // its teachings are carried by at least one selected work -- so switching off
   // John really does remove everything that depends on John, rather than hiding
@@ -1813,8 +1838,9 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
       .map(t => Object.assign({}, t, {links: prune(t.links)}))
       .filter(t => t.links.length);
     srcNote("thsrc", shown.length, T.roots.length);
-    el.innerHTML = shown.map(t =>
-      '<div class="thread">' +
+    const focused = THFOCUS != null ? shown.filter(t => t.id === THFOCUS) : shown;
+    el.innerHTML = (focused.length ? focused : shown).map(t =>
+      '<div class="thread" data-root="' + t.id + '">' +
         '<div class="thh"><span class="ths">' + wit(t.refs, t.indep) + '</span>' +
           '<span class="tht" data-uid="' + t.id + '">' + esc(t.title) + '</span>' +
           '<span class="tdeg">' + t.deg + ' connection' + (t.deg === 1 ? '' : 's') +
@@ -1925,7 +1951,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     d.addEventListener("input", () => {
       THDIAL = +d.value;
       document.getElementById("dialval").textContent = d.value;
-      renderThreads();
+      renderThreads(); tgBuild(); tgResize();
     });
   })();
   document.querySelectorAll('.thsort [data-sort]').forEach(b => {
@@ -1942,6 +1968,211 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     if (n) openPanel(+n.dataset.uid);
   });
   window.refreshThreads = renderThreads;
+
+  /* ---- the thread graph -------------------------------------------------
+     Wenzl, 2026-09-10: threads should open on a knowledge graph, with one view
+     for connections and one for conflicts, and the creative-association dial
+     should visibly grow it.
+
+     Two decisions worth recording. There are no tangled edge lines between
+     unrelated clusters -- the old graph drew every edge at once and it read as
+     noise; here an edge is drawn only between two teachings that are actually
+     linked at the current dial setting, and the two modes never mix. And in
+     conflict mode the two ends of a clash are painted red and green with no
+     verdict attached: the SAME teaching is red in one conflict and green in
+     another, because neither colour means "the right one".                  */
+  const TG = {cv:null, ctx:null, nodes:[], links:[], mode:"conn", alpha:1,
+              view:{s:1,x:0,y:0,init:false}, hover:null, dpr:1, W:0, H:0};
+
+  function tgBuild(){
+    const T = DATA.threads; if (!T) return;
+    const nodeOf = {}, nodes = [], links = [];
+    const add = id => {
+      if (nodeOf[id] != null) return nodeOf[id];
+      const d = DATA.detail[id] || {};
+      const w = witOf(id) || {r:0, i:0};
+      nodeOf[id] = nodes.length;
+      nodes.push({id:id, label:d.title || "", r:0, deg:0, w:w,
+                  x:(Math.cos(nodes.length*2.399963)*(40+(nodes.length%70)*3.4)),
+                  y:(Math.sin(nodes.length*2.399963)*(30+(nodes.length%70)*2.6)),
+                  vx:0, vy:0, side:0});
+      return nodeOf[id];
+    };
+    const want = lt => TG.mode === "conf" ? lt === "tensions_with"
+                                          : lt !== "tensions_with";
+    const seen = new Set();
+    const push = (a, b, lt, assoc) => {
+      if (!want(lt)) return;
+      if ((assoc == null ? 5 : assoc) > THDIAL) return;
+      if (!inSrc(a) || !inSrc(b)) return;
+      const k = a < b ? a + ":" + b : b + ":" + a;
+      if (seen.has(k)) return; seen.add(k);
+      const i = add(a), j = add(b);
+      links.push({s:i, t:j, lt:lt});
+      nodes[i].deg++; nodes[j].deg++;
+      if (TG.mode === "conf"){ nodes[i].side = 1; nodes[j].side = 2; }
+    };
+    (T.roots || []).forEach(rt => {
+      const walk = (parent, list) => (list || []).forEach(l => {
+        push(parent, l.id, l.lt, l.a); walk(l.id, l.kids);
+      });
+      walk(rt.id, rt.links);
+    });
+    nodes.forEach(n => { n.r = 3.4 + Math.sqrt(n.deg || 1) * 2.8; });
+    TG.nodes = nodes; TG.links = links; TG.alpha = 1; TG.view.init = false;
+    const m = document.getElementById("thmn");
+    if (m) m.textContent = nodes.length + " teachings \u00b7 " + links.length +
+      (TG.mode === "conf" ? " conflicts" : " connections");
+  }
+
+  function tgResize(){
+    const cv = TG.cv; if (!cv) return;
+    TG.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    TG.W = cv.clientWidth;
+    TG.H = Math.round(cv.getBoundingClientRect().height) || 420;
+    cv.width = Math.round(TG.W * TG.dpr); cv.height = Math.round(TG.H * TG.dpr);
+    TG.view.init = false;
+  }
+
+  function tgTick(){
+    if (TG.alpha > 0.004) TG.alpha *= 0.991;
+    const k = TG.alpha, N = TG.nodes;
+    for (let i = 0; i < N.length; i++){
+      for (let j = i + 1; j < N.length; j++){
+        const a = N[i], b = N[j];
+        let dx = b.x - a.x, dy = b.y - a.y, d2 = dx*dx + dy*dy || 0.01;
+        const pad = a.r + b.r + 26;
+        if (d2 < pad*pad){
+          const d = Math.sqrt(d2), f = (pad - d) / d * 0.5 * k;
+          dx *= f; dy *= f; a.x -= dx; a.y -= dy; b.x += dx; b.y += dy;
+        }
+      }
+    }
+    TG.links.forEach(l => {
+      const a = N[l.s], b = N[l.t];
+      const dx = b.x - a.x, dy = b.y - a.y, d = Math.sqrt(dx*dx + dy*dy) || 1;
+      const f = (d - 96) / d * 0.045 * k;
+      a.x += dx*f; a.y += dy*f; b.x -= dx*f; b.y -= dy*f;
+    });
+    N.forEach(n => { n.x *= 1 - 0.004*k; n.y *= 1 - 0.004*k; });
+  }
+
+  const SIDE = {1:"#E07A61", 2:"#7CC8A8"};
+  function tgDraw(){
+    const ctx = TG.ctx; if (!ctx) return;
+    const N = TG.nodes, v = TG.view;
+    ctx.save(); ctx.scale(TG.dpr, TG.dpr);
+    ctx.clearRect(0, 0, TG.W, TG.H);
+    if (!N.length){
+      ctx.fillStyle = "#8A8172";
+      ctx.font = '13px "IBM Plex Sans",sans-serif';
+      ctx.textAlign = "center";
+      ctx.fillText("Nothing at this setting. Turn the dial up.", TG.W/2, TG.H/2);
+      ctx.restore(); return;
+    }
+    if (!v.init){
+      let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+      N.forEach(n => { x0=Math.min(x0,n.x-n.r); x1=Math.max(x1,n.x+n.r);
+                       y0=Math.min(y0,n.y-n.r); y1=Math.max(y1,n.y+n.r); });
+      const m=26, bw=Math.max(1,x1-x0), bh=Math.max(1,y1-y0);
+      v.s = Math.min((TG.W-m*2)/bw, (TG.H-m*2)/bh, 1.7);
+      v.x = TG.W/2 - ((x0+x1)/2)*v.s; v.y = TG.H/2 - ((y0+y1)/2)*v.s;
+      v.init = true;
+    }
+    ctx.translate(v.x, v.y); ctx.scale(v.s, v.s);
+    ctx.lineWidth = 1/v.s;
+    TG.links.forEach(l => {
+      const a=N[l.s], b=N[l.t];
+      ctx.strokeStyle = TG.mode === "conf" ? "rgba(224,122,97,.42)"
+                                           : "rgba(124,156,232,.30)";
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+    });
+    N.forEach(n => {
+      ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, 6.2832);
+      ctx.fillStyle = TG.mode === "conf" ? (SIDE[n.side] || "#8A8172")
+                                         : bandOf(null, n.id).col;
+      ctx.fill();
+      if (TG.hover === n){
+        ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 4/v.s, 0, 6.2832);
+        ctx.strokeStyle = "#F2E4B0"; ctx.lineWidth = 2/v.s; ctx.stroke();
+        ctx.lineWidth = 1/v.s;
+      }
+    });
+    if (TG.hover){
+      const n = TG.hover;
+      ctx.font = (12/v.s) + 'px "IBM Plex Sans",sans-serif';
+      ctx.textAlign = "center";
+      const tw = ctx.measureText(n.label).width, ty = n.y - n.r - 9/v.s;
+      ctx.fillStyle = "rgba(23,19,15,.88)";
+      ctx.fillRect(n.x - tw/2 - 5/v.s, ty - 12/v.s, tw + 10/v.s, 17/v.s);
+      ctx.fillStyle = "#F2E4B0"; ctx.fillText(n.label, n.x, ty);
+    }
+    ctx.restore();
+  }
+
+  function tgAt(mx, my){
+    const v = TG.view;
+    const x = (mx - v.x)/v.s, y = (my - v.y)/v.s;
+    let best = null, bd = Infinity;
+    TG.nodes.forEach(n => {
+      const dx = n.x-x, dy = n.y-y, d = dx*dx + dy*dy;
+      const rr = Math.max(n.r + 4, 9/v.s);
+      if (d < rr*rr && d < bd){ bd = d; best = n; }
+    });
+    return best;
+  }
+
+  function tgInit(){
+    TG.cv = document.getElementById("tg");
+    if (!TG.cv) return;
+    TG.ctx = TG.cv.getContext("2d");
+    tgResize(); tgBuild();
+    window.addEventListener("resize", tgResize);
+    TG.cv.addEventListener("mousemove", e => {
+      const r = TG.cv.getBoundingClientRect();
+      TG.hover = tgAt(e.clientX - r.left, e.clientY - r.top);
+      TG.cv.style.cursor = TG.hover ? "pointer" : "default";
+    });
+    TG.cv.addEventListener("mouseleave", () => { TG.hover = null; });
+    TG.cv.addEventListener("click", e => {
+      const r = TG.cv.getBoundingClientRect();
+      const n = tgAt(e.clientX - r.left, e.clientY - r.top);
+      if (!n) return;
+      THFOCUS = n.id;
+      renderThreads();
+      const row = document.querySelector('.thread[data-root="' + n.id + '"]');
+      if (row) row.scrollIntoView({block:"start"});
+      const f = document.getElementById("tgfoot");
+      if (f) f.innerHTML = 'Showing the thread for <b>' + esc(n.label) + '</b>. ' +
+        '<button type="button" class="lpbtn" id="tgall">show every thread</button>';
+    });
+    // exposed so the layout can be driven and verified when the tab is not
+    // painting (a hidden tab pauses requestAnimationFrame entirely)
+    window.tgFrame = (n) => { for (let i=0;i<(n||1);i++){ tgTick(); } tgDraw(); };
+    window.tgState = () => ({nodes:TG.nodes.length, links:TG.links.length,
+                             mode:TG.mode, w:TG.W, h:TG.H});
+    (function loop(){ tgTick(); tgDraw(); requestAnimationFrame(loop); })();
+  }
+  document.querySelectorAll('.thmode [data-tm]').forEach(b => {
+    b.addEventListener("click", () => {
+      TG.mode = b.dataset.tm;
+      document.querySelectorAll('.thmode [data-tm]').forEach(o =>
+        o.setAttribute("aria-pressed", String(o === b)));
+      tgBuild(); tgResize();
+      THFOCUS = null; renderThreads();
+      const f = document.getElementById("tgfoot");
+      if (f) f.textContent = TG.mode === "conf"
+        ? "Every pair that pulls against itself. The two ends of a clash are red and green \u2014 the same teaching is red in one conflict and green in another, so neither colour means the right one. Tap either to open the thread."
+        : "Teachings that support, extend or depend on each other. Tap one to open its thread.";
+    });
+  });
+  document.addEventListener("click", e => {
+    if (e.target && e.target.id === "tgall"){
+      THFOCUS = null; renderThreads();
+      const f = document.getElementById("tgfoot");
+      if (f) f.textContent = "Tap a teaching to open its thread.";
+    }
+  });
 
   // ---- contradictions: the same tensions, pulled out and ranked -------------
   // Three stops, not ten. The 1-10 number was audited a phase after it shipped:
@@ -2021,8 +2252,9 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
       renderContra();
     });
   })();
-  buildSrcPicker("thsrc", () => { renderThreads(); renderContra(); });
+  buildSrcPicker("thsrc", () => { renderThreads(); renderContra(); tgBuild(); });
   buildSrcPicker("cxsrc", () => { renderThreads(); renderContra(); });
+  tgInit();
 
   document.querySelectorAll(".seg [data-lane]").forEach(b => {
     b.addEventListener("click", () => {
