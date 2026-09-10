@@ -421,6 +421,21 @@ td.w{font-size:1rem}
   color:var(--plate-ink-2);gap:1rem}
 .thdial .say{margin-top:.5rem;font-size:.76rem;line-height:1.5;color:var(--plate-ink-2)}
 .thdial .say b{color:var(--plate-ink)}
+.cfrow{padding:.85rem 0;border-top:1px solid var(--rule)}
+.cfh{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap}
+.cfs{width:9px;height:9px;border-radius:50%;flex:none;transform:translateY(1px)}
+.cfn{font-size:.95rem;color:var(--ink);cursor:pointer;text-decoration:underline;
+  text-decoration-color:var(--rule);text-underline-offset:3px}
+.cfw{font-size:.74rem;color:var(--ink-3);margin-left:auto}
+.cfy{margin:.35rem 0 0;font-size:.86rem;line-height:1.55;color:var(--ink-2)}
+.cfa{margin:.3rem 0 0;font-size:.82rem;line-height:1.55;color:var(--ink-3)}
+.cfm{margin-top:.3rem;font-family:"IBM Plex Mono",monospace;font-size:.68rem;
+  color:var(--ink-3)}
+.lph{padding:0 0 .6rem}
+.lph h3{margin:.15rem 0 .3rem;font-size:1.05rem;line-height:1.3;color:var(--ink)}
+.lpk{font-size:.6rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-3)}
+.lpw{font-size:.78rem;color:var(--ink-3)}
 .conote{padding:1rem 1.1rem;font-size:.8rem;line-height:1.6;
   color:var(--plate-ink-2);border-bottom:1px solid var(--plate-rule)}
 .conote b{color:var(--plate-ink)}
@@ -1809,9 +1824,25 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
         shown + " of " + total + ". A link needs both of its teachings carried by a " +
         "source you still count.";
   }
+  // The list under the graph must obey the SAME mode the graph is in. It did
+  // not: the toggle redrew the canvas with only tension edges and then called
+  // renderThreads(), which pruned by dial and source and nothing else. So you
+  // could sit in Contradictions, tap a red node, and get a thread whose first
+  // child was "illustrates" -- a supporting connection, in the conflict view.
+  // The graph and the list were two views of different things wearing one
+  // control.
   function prune(list){
     if (!list) return [];
-    return list.filter(l => (l.a == null ? 5 : l.a) <= THDIAL && inSrc(l.id))
+    // Symmetrical, because the toggle is a filter and says "Show". The graph
+    // has always drawn tensions in one mode and everything else in the other;
+    // the list now does the same. The strain never disappears from the page --
+    // the thread header keeps printing the full "N pull against" count from the
+    // unpruned data, so a reader in Supporting connections can still see that a
+    // teaching is contested and is one tap from it.
+    const conf = (typeof TG !== "undefined" && TG.mode === "conf");
+    const wanted = lt => conf ? lt === "tensions_with" : lt !== "tensions_with";
+    return list.filter(l => (l.a == null ? 5 : l.a) <= THDIAL && inSrc(l.id)
+                            && wanted(l.lt))
                .map(l => Object.assign({}, l, {kids: prune(l.kids)}));
   }
   function countRows(list){
@@ -1870,6 +1901,113 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
       'so the rejections are as visible as the findings.';
   }
 
+  // Clicking a teaching in the graph opens its thread in the same bottom sheet
+  // the rest of the page uses, instead of replacing the graph with a list. The
+  // graph keeps its place and shows what was selected; the sheet carries the
+  // reading. Wenzl asked for this after the old behaviour scrolled the canvas
+  // off the screen, which made the graph look like it had disappeared.
+  function tgClear(){
+    TG.sel = null;
+    tgDraw();
+    const p = document.getElementById("linkpanel");
+    if (p) p.classList.remove("open");
+    const sc = document.getElementById("scrim");
+    if (sc) sc.classList.remove("open");
+    const f = document.getElementById("tgfoot");
+    if (f) f.textContent = TG.mode === "conf"
+      ? "Every pair that pulls against itself. Tap either end to light it up."
+      : "Teachings that support, extend or depend on each other. Tap one to light it up.";
+  }
+
+  function openThreadSheet(uid, label){
+    const T = DATA.threads;
+    const root = (T.roots || []).find(r => r.id === uid);
+    const el = document.getElementById("lpi"), p = document.getElementById("linkpanel");
+    if (!el || !p) return;
+    // the graph knows the label of whatever was clicked, which is the only
+    // source that works for a node that is neither a root nor in a conflict
+    const title = (root && root.title) || label ||
+                  (T.contra || []).reduce((n, c) =>
+                    n || (c.a === uid ? c.at : c.b === uid ? c.bt : null), null);
+    const w = witOf(uid);
+    const head =
+      '<div class="lph"><span class="lpk">' +
+        (TG.mode === "conf" ? "Contradictions" : "Supporting connections") +
+      '</span><h3>' + esc(title || "This teaching") + '</h3>' +
+      '<div class="lpw">' + wit(w && w.r, w && w.i) + '</div></div>';
+
+    if (TG.mode === "conf"){
+      // Conflicts do NOT live in the thread tree -- a teaching can appear in the
+      // conflict graph and have no tension among its own children, which is why
+      // this sheet came up empty the first time. The authoritative list is
+      // DATA.threads.contra, which also carries the severity and both sides.
+      const mine = (T.contra || []).filter(c => c.a === uid || c.b === uid);
+      el.innerHTML = head + (mine.length
+        ? mine.map(c => {
+            const meA = c.a === uid;
+            const ot = meA ? c.bt : c.at, oi = meA ? c.b : c.a;
+            const ow = witOf(oi);
+            return '<div class="cfrow">' +
+              '<div class="cfh"><span class="cfs" style="background:' +
+                (meA ? SIDE[1] : SIDE[2]) + '"></span>' +
+              '<span class="cfn" data-uid="' + oi + '">' + esc(ot) + '</span>' +
+              '<span class="cfw">' + wit(ow && ow.r, ow && ow.i) + '</span></div>' +
+              '<p class="cfy">' + esc(c.why) + '</p>' +
+              (c.adds ? '<p class="cfa">' + esc(c.adds) + '</p>' : '') +
+              '<div class="cfm">' + esc(c.ab || "") +
+                (c.sev != null ? ' \u00b7 severity ' + c.sev : '') + '</div>' +
+            '</div>';
+          }).join("")
+        : '<div class="lph">No contradiction recorded for this teaching.</div>');
+    } else {
+      // A node in the graph is not necessarily a ROOT -- it can appear only as
+      // somebody else's child, and asking T.roots for it then returns nothing.
+      // That produced an empty sheet titled "This teaching". Walk every tree and
+      // collect the edges that actually touch this teaching, in both directions.
+      const out = root ? prune(root.links) : [];
+      const inc = [];
+      const seen = new Set();
+      (function walk(list, parent, ptitle){
+        (list || []).forEach(l => {
+          if (l.id === uid && !seen.has(parent + ">" + l.lt)){
+            seen.add(parent + ">" + l.lt);
+            inc.push({id: parent, title: ptitle, lt: l.lt, st: l.st,
+                      a: l.a, why: l.why, adds: l.adds});
+          }
+          walk(l.kids, l.id, l.title);
+        });
+      })(null, null, null);
+      (T.roots || []).forEach(r => {
+        (function walk(list, parent, ptitle){
+          (list || []).forEach(l => {
+            if (l.id === uid){
+              const k = parent + ">" + l.lt;
+              if (!seen.has(k)){ seen.add(k);
+                inc.push({id: parent, title: ptitle, lt: l.lt, st: l.st, a: l.a}); }
+            }
+            walk(l.kids, l.id, l.title);
+          });
+        })(r.links, r.id, r.title);
+      });
+      const back = inc.filter(l => (l.a == null ? 5 : l.a) <= THDIAL
+                                   && l.lt !== "tensions_with" && inSrc(l.id));
+      el.innerHTML = head +
+        (root && root.core ? '<p class="thc">' + esc(root.core) + '</p>' : '') +
+        (out.length ? threadKids(out, 0, uid) : "") +
+        (back.length
+          ? '<div class="lpk" style="padding:.7rem 0 .2rem">Reached from</div>' +
+            threadKids(back, 0, uid)
+          : "") +
+        ((out.length || back.length) ? ""
+          : '<div class="lph">Nothing at this setting. Turn the dial up.</div>');
+    }
+    document.getElementById("nodepanel").classList.remove("open");
+    p.classList.add("open");
+    const sc = document.getElementById("scrim");
+    if (sc) sc.classList.add("open");
+    el.scrollTop = 0;
+  }
+
   function renderThreads(){
     const el = document.getElementById("threadrows");
     const T = DATA.threads;
@@ -1895,8 +2033,11 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
         (t.core ? '<p class="thc">' + esc(t.core) + '</p>' : '') +
         threadKids(t.links, 0, t.id) +
       '</div>').join("") ||
-      '<div style="padding:1.2rem;color:var(--plate-ink-2)">Nothing at this setting. ' +
-      'Turn the dial up.</div>';
+      '<div style="padding:1.2rem;color:var(--plate-ink-2)">' +
+      ((typeof TG !== "undefined" && TG.mode === "conf")
+        ? 'No contradictions at this setting. Turn the dial up, or switch to ' +
+          'supporting connections.'
+        : 'Nothing at this setting. Turn the dial up.') + '</div>';
     const rows = shown.reduce((n, t) => n + countRows(t.links), 0);
     const dc = document.getElementById("dialcnt");
     if (dc) dc.textContent = shown.length + " threads \u00b7 " + rows + " links";
@@ -2126,23 +2267,50 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     }
     ctx.translate(v.x, v.y); ctx.scale(v.s, v.s);
     ctx.lineWidth = 1/v.s;
+    // Selecting a teaching used to replace the graph with a list -- the click
+    // scrolled the chosen thread to the top of the window and the canvas went
+    // off screen. The graph now STAYS and answers the click: everything the
+    // selected teaching touches lights up, everything else recedes, and the
+    // thread itself opens in the sheet at the bottom.
+    const sel = TG.sel;
+    const near = new Set();
+    if (sel != null){
+      near.add(sel);
+      TG.links.forEach(l => {
+        if (N[l.s].id === sel) near.add(N[l.t].id);
+        if (N[l.t].id === sel) near.add(N[l.s].id);
+      });
+    }
+    const on = n => sel == null || near.has(n.id);
     TG.links.forEach(l => {
       const a=N[l.s], b=N[l.t];
-      ctx.strokeStyle = TG.mode === "conf" ? "rgba(224,122,97,.42)"
-                                           : "rgba(124,156,232,.30)";
+      const lit = sel == null || a.id === sel || b.id === sel;
+      ctx.strokeStyle = TG.mode === "conf"
+        ? (lit ? "rgba(224,122,97,.85)" : "rgba(224,122,97,.07)")
+        : (lit ? "rgba(124,156,232,.75)" : "rgba(124,156,232,.06)");
+      ctx.lineWidth = (lit && sel != null ? 2 : 1)/v.s;
       ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
     });
+    ctx.lineWidth = 1/v.s;
     N.forEach(n => {
+      ctx.globalAlpha = on(n) ? 1 : 0.13;
       ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, 6.2832);
       ctx.fillStyle = TG.mode === "conf" ? (SIDE[n.side] || "#8A8172")
                                          : bandOf(null, n.id).col;
       ctx.fill();
+      if (n.id === sel){
+        ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 5/v.s, 0, 6.2832);
+        ctx.strokeStyle = "#F2E4B0"; ctx.lineWidth = 2/v.s; ctx.stroke();
+        ctx.lineWidth = 1/v.s;
+      }
       if (TG.hover === n){
+        ctx.globalAlpha = 1;
         ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 4/v.s, 0, 6.2832);
         ctx.strokeStyle = "#F2E4B0"; ctx.lineWidth = 2/v.s; ctx.stroke();
         ctx.lineWidth = 1/v.s;
       }
     });
+    ctx.globalAlpha = 1;
     if (TG.hover){
       const n = TG.hover;
       ctx.font = (12/v.s) + 'px "IBM Plex Sans",sans-serif';
@@ -2182,14 +2350,14 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     TG.cv.addEventListener("click", e => {
       const r = TG.cv.getBoundingClientRect();
       const n = tgAt(e.clientX - r.left, e.clientY - r.top);
-      if (!n) return;
-      THFOCUS = n.id;
-      renderThreads();
-      const row = document.querySelector('.thread[data-root="' + n.id + '"]');
-      if (row) row.scrollIntoView({block:"start"});
+      if (!n){ tgClear(); return; }
+      TG.sel = n.id;
+      openThreadSheet(n.id, n.label);
+      tgDraw();
       const f = document.getElementById("tgfoot");
-      if (f) f.innerHTML = 'Showing the thread for <b>' + esc(n.label) + '</b>. ' +
-        '<button type="button" class="lpbtn" id="tgall">show every thread</button>';
+      if (f) f.innerHTML = '<b>' + esc(n.label) + '</b> is lit, with everything ' +
+        'it touches. ' +
+        '<button type="button" class="lpbtn" id="tgall">clear</button>';
     });
     // exposed so the layout can be driven and verified when the tab is not
     // painting (a hidden tab pauses requestAnimationFrame entirely)
@@ -2213,7 +2381,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
   });
   document.addEventListener("click", e => {
     if (e.target && e.target.id === "tgall"){
-      THFOCUS = null; renderThreads();
+      tgClear();
       const f = document.getElementById("tgfoot");
       if (f) f.textContent = "Tap a teaching to open its thread.";
     }
