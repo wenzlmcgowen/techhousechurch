@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- QUIET LAUNCH: live and shareable by link, but not discoverable.
+     Remove this line when Wenzl decides it is ready to be found. -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="An open evidence map of the teachings attributed to Jesus - ranked by how independently each is attested, discounted for witnesses that were copying each other, and showing the arguments against itself.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tech House Church">
+<meta property="og:title" content="Tech House Church - the evidence">
+<meta property="og:description" content="What can actually be known about what Jesus taught, and how well. Every claim shows its evidence and its counter-evidence.">
+<meta property="og:url" content="https://techhousechurch.org/">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+<title>Tech House Church &mdash; how this was built</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<link rel="stylesheet" href="style.css">
+
+<div class="wrap">
+
+<nav class="backbar">
+  <a class="backlink" href="index.html">&larr; Back to the graph</a>
+  <span class="mono">techhousechurch.org</span>
+</nav>
+
+<header class="mast">
+  <h1>How this was built</h1>
+  <p class="standfirst">The method, the arithmetic, and the parts that do not work yet.
+  Every number on this page is recomputable from the database, and the page refuses to
+  publish if any of them drifts.</p>
+</header>
+
+<section>
+  <div class="shead"><span class="label rubric">The rule</span><h2>Abundance is not evidence</h2></div>
+  <div class="col">
+    <p class="lede">Four gospels saying the same thing is not four votes. Matthew and Luke both had Mark open in front of them. A ninth-century manuscript is not an independent memory. A Syriac version is a control on <em>wording</em>, not a witness to what Jesus said. Fifty English translations are one translation, fifty times.</p>
+    <p class="lede">So each teaching gets <strong>one</strong> score, and it is built by subtraction. Start from how many sources carry it, then take away everything that isn&rsquo;t independent: material copied from an earlier gospel, later reception, translations used as controls, unstable text. What survives is the number.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <span class="label rubric">The ladder</span>
+    <h2>What survives the discount</h2>
+    <p class="lede">One number per teaching: the <strong>evidence score</strong>. It is worked out by counting how many <em>independent</em> sources carry the teaching, discounting the ones that were copying each other, and subtracting for bundled units, unstable text, and later theological expansion.</p>
+    <p class="lede">Nothing here is a guess. Every score can be taken apart into the evidence that produced it &mdash; <strong>click any row</strong> and you get the whole derivation, witness by witness.</p>
+    <p class="lede"><strong>Out of 10, and nothing reaches 10.</strong> The best-attested teaching in the corpus scores <strong>9</strong>. That is not modesty &mdash; it is what the evidence supports, and a 10 would have to mean something no first-century saying can claim.</p>
+    <p class="lede"><strong>And the five colours are softer than they look.</strong> A check
+      built for the contradiction scale was turned on this one, and the result belongs here
+      rather than in a working file. This database records, for every teaching, the gap
+      between what the formula computes and what a person scored by hand &mdash; and the
+      median gap is <strong>0.98 points out of 10</strong>. Move every score by that much
+      and <strong>89% of teachings land in a different colour band</strong>. At three bands
+      it would be 60%; at two, 42%. So the bands are a reading aid, not a finding: trust the
+      number and the derivation under it, and treat the colour as a rough sort. Whether to
+      paint fewer bands is a decision about this page, not about the evidence, and it has
+      not been made yet.</p>
+    <p class="lede">The scale is deliberately coarse. Across 125 teachings the formula produces only 37 distinct values, so a finer number would be inventing precision. It is also <em>absolute</em>: a teaching&rsquo;s score never changes because some other teaching was added or removed. And it is <strong>not a probability</strong> &mdash; a 9 does not mean a 90% chance he said it. It means the evidence is about as strong as evidence here gets.</p>
+    <p class="lede"><strong>Teachings sharing a number are tied.</strong> Six of these score 9, and there is no honest way to rank one above another &mdash; the evidence does not separate them. The bar is drawn from the finer underlying figure so you can see which way it leans, but do not read much into a difference the number itself refuses to make.</p>
+  </div>
+  <div class="ladder" id="ladder"></div>
+</section>
+
+<section>
+  <div class="shead">
+    <span class="label rubric">The discount</span>
+    <h2>Where confidence drains away</h2>
+    <p class="lede">The teachings that lose the most. Nearly all of them are the beloved parables that survive in <em>one</em> stream &mdash; Luke's special material. They are not less true; they are less <em>independently</em> attested, and the graph refuses to pretend otherwise.</p>
+  </div>
+  <div class="slope">
+    <div class="slope-head">
+      <span class="label">Raw attestation</span>
+      <span class="label">Reliability-weighted</span>
+    </div>
+    <canvas id="slope" height="420"></canvas>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <span class="label rubric">The redaction</span>
+    <h2>What the later writers actually did</h2>
+    <p class="lede">Until now the discount rested on a general principle: Matthew and Luke had Mark open, so their agreement isn&rsquo;t independent. This pass checked it case by case &mdash; twenty-four pairs, each asking what the later witness <em>demonstrably does</em> to the earlier one.</p>
+    <p class="lede">Fourteen came out <strong>likely dependent</strong>. Exactly one came out likely independent. That is the discount, measured rather than assumed. No source text is stored anywhere in this database &mdash; these observations describe the changes rather than reproducing the texts.</p>
+  </div>
+  <div class="deprow" id="deprow"></div>
+  <div class="pairs" id="pairs"></div>
+</section>
+
+<section>
+  <div class="shead">
+    <span class="label rubric">The streams</span>
+    <h2>Who is actually testifying</h2>
+    <p class="lede">Attestation counts by work, with the dates the database holds. Matthew and Luke lead on volume &mdash; which is exactly why volume alone can't be trusted: most of it is Mark, re-told.</p>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Work</th><th>Date (CE)</th><th>Status</th><th style="text-align:right">Attestations</th><th style="text-align:right">Mean independence</th></tr></thead>
+      <tbody id="streams"></tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <span class="label rubric">The hole</span>
+    <h2>What wasn&rsquo;t here at all</h2>
+    <p class="lede">Ten cycles asked whether the entries were <em>correct</em>. None asked whether they were <em>complete</em>. They weren&rsquo;t: the <strong>Golden Rule was missing entirely</strong> from a database of 123 teachings, and so was the leaven &mdash; the paired opposite of the mustard seed, which was present and ranked.</p>
+    <p class="lede">The hole is systematic, not random. It is almost entirely <strong>Luke&rsquo;s special parables</strong>: the lost coin, the rich fool, the persistent widow, the barren fig tree, the two debtors, counting the cost. Because Luke-only material scores low under the canonical formula, none of this changes the top of the ladder &mdash; which is exactly why nobody noticed. A database can be silently incomplete in the places its own scoring cares least about.</p>
+    <p class="lede">The Golden Rule and the leaven are now in, both landing mid-ladder (#47 and #52) on two streams each. The remaining eight are <em>recorded</em> rather than invented in bulk at the end of a push.</p>
+  </div>
+  <div class="gaps2" id="gaps2"></div>
+</section>
+
+<section>
+  <div class="shead">
+    <span class="label rubric">The objection</span>
+    <h2>Attested, or just widespread?</h2>
+    <p class="lede">Here is the strongest argument against the ladder above, and the formula cannot see it: <strong>multiple attestation may record a saying&rsquo;s circulation, not its origin.</strong> Proverbs and apocalyptic commonplaces travel on their own and collect famous attributions along the way. A saying in Mark, Q, Paul <em>and</em> Thomas might be everywhere because it was common property.</p>
+    <p class="lede">It bites hardest exactly where it hurts most. <strong>Four of the canonical top ten</strong> carry this risk &mdash; including the top three.</p>
+  </div>
+
+  <div class="nudge">
+    <p><strong>Nothing here is scored.</strong> I went looking for the scholarship &mdash; the rabbinic &ldquo;uprooter of mountains&rdquo; parallel, the Greek proverb behind &ldquo;a prophet is not without honour&rdquo; &mdash; and the search returned devotional writing, not scholarship. Under this project&rsquo;s own rule an unverified claim may not move a number, so every row below has <span class="mono">affects_score = 0</span>. The register is a queue of open questions, not a verdict.</p>
+  </div>
+
+  <div class="col" style="margin-bottom:1.3rem">
+    <p class="lede">Each row separates two things that are easy to blur: what the primary text <span style="color:var(--lapis);font-weight:600">actually shows</span>, which is checkable now &mdash; and the <span style="color:var(--minium);font-weight:600">inference</span> drawn from it, which is contested and needs a named source.</p>
+  </div>
+
+  <div class="arisk" id="arisk"></div>
+</section>
+
+<section>
+  <div class="shead">
+    <span class="label rubric">The audit</span>
+    <h2>Where the number comes from</h2>
+    <p class="lede">The first scores in this project were guesses &mdash; numbers typed in from a quick read, before any evidence was counted. They have been <strong>removed from every ranking and display</strong>. They are kept in the database as a record of how the project started, and nothing else.</p>
+    <p class="lede">What replaced them is a written formula over stored evidence only: streams weighted by quality, diminishing returns on later witnesses, penalties for bundling and unstable text. You can ask why any teaching scores what it does, and the database answers.</p>
+    <p class="lede">The first version <em>failed its own audit</em>, which is the whole argument for writing it down. It <strong>upgraded</strong> the longer ending of Mark from 0.22 to 0.44, because the label &ldquo;Late Mark ending&rdquo; matched <span class="mono">mark</span> before it matched <span class="mono">late</span>. A known late addition got promoted into the earliest stream by a string-matching bug. It now scores 0.14. A number typed in by hand could never have exposed that, because there was nothing to inspect.</p>
+    <p class="lede">Then the method&rsquo;s fifth criterion &mdash; late legendary expansion &mdash; was encoded as 27 cited flags, and <strong>the first attempt made things worse.</strong> Seven teachings were driven to the very bottom of the scale, and <em>all seven had already been penalised</em> for having no independent source. The same fact was being counted against them twice, and the bottom of the ladder collapsed into a single value where real differences had been.</p>
+    <p class="lede">Scaling the penalty instead of subtracting it fixed that. The failure is kept on this page because a formula that can be inspected can be caught being wrong &mdash; which is the entire argument for writing one down.</p>
+  </div>
+
+  <div class="tablewrap" style="margin-bottom:1.6rem">
+    <table class="vtab">
+      <thead><tr><th>Formula</th><th>Change</th><th class="n">flattened to the floor</th><th class="n">distinct values, bottom 20</th></tr></thead>
+      <tbody id="vers"></tbody>
+    </table>
+  </div>
+
+  <div class="col" style="margin-bottom:1.5rem">
+    <p class="lede">The flags themselves, each cited, six of them carrying a source that argues the other way:</p>
+  </div>
+  <div class="eflags" id="eflags"></div>
+
+  <div class="col" style="margin-bottom:1.2rem">
+    <h3 style="font-family:'EB Garamond',Georgia,serif;font-size:1.35rem;font-weight:500;margin-bottom:.5rem">Three scores was two too many</h3>
+    <p class="lede">Auditing this turned up something worse than a stale number. <strong>Three scoring systems had accumulated</strong> &mdash; the original guessed numbers, an independence weighting buried in an export script, and this formula &mdash; and they produced three different top-six lists with <em>no teaching common to all three</em>. Asked which teachings are most probably his, the database gave three answers depending on which column you read.</p>
+    <p class="lede">One is now canonical. Nothing was deleted.</p>
+  </div>
+  <div class="reg" id="reg"></div>
+
+  <div class="split2">
+    <div class="sbox"><span class="n">125</span><h3>scores, all derived</h3><p>Every one recomputable from stored evidence. None estimated.</p></div>
+    <div class="sbox lo"><span class="n">2</span><h3>of five criteria encoded</h3><p>Attestation and late expansion. Coherence, contextual fit and genre are <em>not</em> in the formula.</p></div>
+    <div class="sbox hi"><span class="n">3</span><h3>formula versions, in public</h3><p>Including the one that got worse. The failures are on this page, not tidied away.</p></div>
+  </div>
+
+  <div class="col" style="margin-bottom:1.5rem">
+    <p class="lede">Be clear about what this measures. <strong>Attestation and late expansion &mdash; roughly two of the method&rsquo;s five criteria.</strong> Coherence with the earliest layer, fit with first-century Jewish Palestine, and genre are <em>not</em> encoded, because no honest way to compute them from stored evidence has been found yet. Until there is, they stay out rather than being faked.</p>
+    <p class="lede">So this is a ranking by how well a teaching is attested, not a verdict on what he certainly said. The difference matters and the page will not blur it.</p>
+  </div>
+
+
+</section>
+
+<section>
+  <div class="shead">
+    <span class="label rubric">One word</span>
+    <h2>Abba</h2>
+    <p class="lede">Of everything here, one Aramaic word carries more evidential weight than any parable. Not because it says the most &mdash; because it survived a journey that should have destroyed it. Greek-speaking congregations in Rome and Galatia, people who knew no Aramaic, kept praying an Aramaic word and then immediately translating it. You don&rsquo;t do that with vocabulary. You do that with something you were given.</p>
+    <p class="lede">It appears three times in the entire New Testament, always as the same fixed formula, always in prayer:</p>
+  </div>
+
+  <div class="occ">
+    <span class="oc1">Mark 14:36</span><span class="oc2">Jesus</span><span class="oc3">Gethsemane</span>
+    <span class="oc1">Romans 8:15</span><span class="oc2">believers</span><span class="oc3">prayer of adoption</span>
+    <span class="oc1">Galatians 4:6</span><span class="oc2">the Spirit</span><span class="oc3">crying in believers&rsquo; hearts</span>
+  </div>
+
+  <div class="col">
+    <p class="lede">Looking at it closely cost us something. In cycle 1 this page called Mark and Paul <em>two independent streams</em>. That was overstated &mdash; an identical fixed formula in two authors is better explained by one inherited liturgical unit than by two separate memories. The anchor&rsquo;s score came down from 0.95 to 0.90, and the correction is stored in the database rather than written over the old claim.</p>
+    <p class="lede">Two other things long said on the strength of this word are simply wrong. It does not mean <em>Daddy</em>. And Jesus was not the first to pray this way.</p>
+  </div>
+
+  <div class="abba" id="abba" style="margin-top:1.6rem"></div>
+
+  <div class="col" style="margin-top:1.6rem">
+    <p class="lede">What survives is narrower than the popular claim and, I think, better: strong evidence that the earliest Jesus movement prayed in Aramaic using a form its Greek-speaking members refused to let go of, and good &mdash; if inferential &mdash; evidence that the form goes back to him.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <span class="label rubric">The bundles</span>
+    <h2>The number at the top of the ladder was wrong</h2>
+    <p class="lede">Attestation counts <em>works per unit</em>. When a unit bundles several different sayings, witnesses to <em>different</em> sayings get summed &mdash; and the unit displays a strength no single saying in it possesses.</p>
+    <p class="lede"><strong>Wealth is dangerous</strong> scores 0.92 on five works. But Mark&rsquo;s rich young man, Matthew&rsquo;s treasures-and-two-masters, and Luke&rsquo;s rich fool are not parallels. They are different sayings. Nothing in that unit is attested five times.</p>
+    <p class="lede">This inflates twice over: apparent <em>agreement</em>, between witnesses that were never discussing the same saying, and apparent <em>independence</em>, from streams that never independently attested anything.</p>
+  </div>
+
+  <div class="bigfig">
+    <span class="f a" id="ucb"></span>
+    <span class="cap">works summed across the nine highest-scoring units</span>
+    <span class="to">&rarr;</span>
+    <span class="f b" id="uci"></span>
+    <span class="cap">genuinely independent streams, once bundling and Markan copying are removed</span>
+  </div>
+
+  <div class="bundles" id="bundles"></div>
+
+  <div class="col" style="margin-top:1.6rem">
+    <p class="lede">Seven of the nine come down to a <strong>single</strong> independent stream. That is not a reason to disbelieve them &mdash; one early stream is still evidence, and Allison&rsquo;s counter-argument is recorded alongside: a recurring <em>theme</em> may be better attested than any one saying. But it is the difference between &ldquo;five witnesses agree&rdquo; and &ldquo;one source, copied four times.&rdquo;</p>
+    <p class="lede">One unit is a category error rather than a bundle. <em>Parables as Jesus&rsquo; characteristic speech</em> cites whole chapters and is a claim about the <em>form</em> of his teaching, not a teaching whose wording can be compared. It has been flagged, not moved &mdash; reclassifying it changes the headline ranking, and that is a call for Wenzl, not for me.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <span class="label rubric">The versions</span>
+    <h2>Watching a prayer grow</h2>
+    <p class="lede">Syriac earns its own pass for one reason: it is the only Aramaic-family translation tradition. For a Syriac scribe the Aramaic words preserved in the Greek &mdash; <em>Talitha koum</em>, <em>Abba</em>, <em>Korban</em> &mdash; aren&rsquo;t foreign vocabulary. They are native. No Latin or Coptic witness can tell us anything about that.</p>
+    <p class="lede">But the sharpest thing these witnesses show is the ending of the Lord&rsquo;s Prayer, caught mid-growth:</p>
+  </div>
+
+  <div class="grow">
+    <span class="w">Didache</span><span class="r">&hellip; for yours is the <em>power and the glory</em> forever</span>
+    <span class="w">Old Syriac (Curetonian)</span><span class="r">&hellip; for yours is the <em>kingdom and the glory</em>, forever, Amen</span>
+    <span class="w">Peshitta</span><span class="r">&hellip; for yours is the <em>kingdom and the power and the glory</em></span>
+  </div>
+
+  <div class="col">
+    <p class="lede">Three witnesses, three endings, each fuller than the last &mdash; and the familiar one is absent from the earliest Greek manuscripts entirely. Nobody was lying. Liturgy accretes as congregations say it aloud.</p>
+    <p class="lede">This is the project&rsquo;s whole thesis in a single variant. A reading can be ancient, widespread, beloved, and still be an addition. Counting witnesses would have made this <em>more</em> certain, not less.</p>
+  </div>
+
+  <div class="vtable" style="margin-top:1.6rem">
+    <table>
+      <thead><tr><th>Variant site</th><th>Witness</th><th>Date</th><th>Does</th><th>Reading</th></tr></thead>
+      <tbody id="vrows"></tbody>
+    </table>
+  </div>
+  <p class="lede" style="margin-top:.9rem;font-size:.95rem" id="vqnote"></p>
+</section>
+
+<section>
+  <div class="shead">
+    <span class="label rubric">The apparatus</span>
+    <h2>Every claim, traced to a source</h2>
+    <p class="lede">A hundred and four works, chosen for what they license rather than for weight of name. Each carries two fields that matter more than its title: what it may legitimately be cited <em>for</em>, and where it is dated, contested, or routinely over-read.</p>
+    <p class="lede">No page numbers are recorded anywhere in this database. A page citation requires the book actually open, and none of these have been. Recording one from memory would be the exact failure this apparatus exists to prevent.</p>
+  </div>
+  <div class="lanes" id="lanes"></div>
+  <div class="explorer">
+    <div class="explist" id="featlist" role="listbox" aria-label="Substrate features"></div>
+    <div class="expdetail" id="featdetail"></div>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <span class="label rubric">The discounts</span>
+    <h2>Even the rules are cited</h2>
+    <p class="lede">Every weight this project applies is a scholarly judgement. If the weights can't be traced, the ranking is just an opinion with decimals attached. Five of these twelve rules carry a documented counter-position &mdash; including one that would break the model if it holds.</p>
+  </div>
+  <div class="rules" id="rules"></div>
+</section>
+
+<section>
+  <div class="shead">
+    <span class="label rubric">The honest part</span>
+    <h2>What isn't built yet</h2>
+    <p class="lede">Part of this list has since been filled in &mdash; the source text went in, and you can now read it on the page. What is left is mostly the part no machine can do for us. Until it is done, the graph can tell you a teaching ranks strongly &mdash; but not let you audit, down to a scholar and a page, <em>why</em>.</p>
+  </div>
+  <div class="gaps">
+    <div class="gap"><span class="n">354</span><h3>passages now carry text</h3><p>Of 366 &mdash; done since this list was written. Public-domain English throughout, with the Nestle 1904 Greek on 309 of them. Twelve remain textless, two of those correctly: Q is a reconstruction and has no manuscript to quote.</p></div>
+    <div class="gap"><span class="n">0</span><h3>page-verified citations</h3><p>All 245 citations point at works, none at pages. Turning them into page-level references needs the books physically opened. It cannot be done from memory, and that is the point.</p></div>
+    <div class="gap"><span class="n">0</span><h3>modern_translations</h3><p>No reader-facing comparison layer. Deliberate: rights posture has to be explicit before anything goes in.</p></div>
+    <div class="gap"><span class="n">12</span><h3>Syriac questions open</h3><p>Twelve substrate-control questions queued against Kiraz&rsquo;s Comparative Edition. The sharpest: if the children/stones pun is real, a Syriac translator should reproduce it automatically.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <span class="label rubric">Next</span>
+    <h2>The moves, in order of impact</h2>
+    <p class="lede">From <span class="mono" style="font-size:.85em">working/next-database-actions-ranked.md</span>. The order is deliberate: nothing downstream is trustworthy until the citation backbone exists.</p>
+  </div>
+  <div class="moves">
+    <div class="move"><div><h3>Build the per-witness wording tables</h3><p>Right now the database knows <em>which</em> witnesses carry a teaching, not <em>what they actually say</em>. Until then, dependency discounting is an estimate rather than a measurement.</p></div></div>
+    <div class="move"><div><h3>Pilot on two teachings</h3><p><em>Sabbath for human good</em> and <em>Kingdom/reign of God is near</em> &mdash; one mixes close Markan wording with Lukan expansion, the other is the conceptual spine of the whole book.</p></div></div>
+    <div class="move"><div><h3>Split the broad units into comparable pieces</h3><p>"Wealth is dangerous" bundles several separate sayings. Bundles manufacture fake agreement and fake independence at the same time.</p></div></div>
+    <div class="move"><div><h3>Move the graph relationships into the database</h3><p>So the visual map is a product of the data, not a one-off export sitting beside it.</p></div></div>
+    <div class="move"><div><h3>Verify page citations, one work at a time</h3><p>The apparatus currently cites works. Turning those into page-level citations is what would make this genuinely audit-grade &mdash; and it cannot be done from memory.</p></div></div>
+  </div>
+</section>
+
+<section id="contribute">
+  <div class="shead">
+    <span class="label rubric">Open</span>
+    <h2>The one job that needs a person</h2>
+    <p class="lede">This is a working draft, not a finished thing, and it is meant to be worked on by more than one person. There is a specific job it needs, and it is the one job the machine that built this cannot do.</p>
+  </div>
+
+  <div class="col">
+    <p class="lede"><strong>Every citation here names a book. None names a page.</strong> All 245 of them. If you wanted to check whether Barr has been represented fairly, you would have to read his whole article to find the sentence we are leaning on.</p>
+    <p class="lede">Nobody has opened these books. Writing a page number from memory would look <em>more</em> scholarly and would be a fabrication &mdash; so the field was left empty and the count published instead. It has read <span class="mono">0</span> since the first day.</p>
+    <p class="lede"><strong>Adopt a citation.</strong> If you have a university library card, JSTOR, or an Internet Archive account, you can close a piece of this in about thirty seconds per entry: find the passage, note the page, send it back. Twenty citations from one person with access would move this further than another week of machine work.</p>
+  </div>
+
+  <div class="gaps2" style="margin-top:1.6rem">
+    <div class="gp"><span class="gt"><a href="/adopt.html" style="color:var(--lapis)">Verify a page &rarr;</a></span>
+      <span class="gr">11 works, the full worklist is live</span>
+      <span class="gn">Start with the ones that license a confidence upgrade: Barr 1988 (JTS 39, 28&ndash;47), Schelbert 2011, Fitzmyer 1979, Williams 2004.</span></div>
+    <div class="gp"><span class="gt">Answer a Syriac question</span>
+      <span class="gr">12 open, needs Kiraz&rsquo;s Comparative Edition</span>
+      <span class="gn">The sharpest: if the children/stones pun is real, a native Aramaic-family translator should reproduce it automatically. If the Syriac shows none, that argument weakens badly.</span></div>
+    <div class="gp"><span class="gt">Source an objection</span>
+      <span class="gr">8 rows still unsourced</span>
+      <span class="gn">The strongest argument against this ladder is that multiple attestation may measure a saying&rsquo;s circulation, not its origin. It needs real specialist sources.</span></div>
+    <div class="gp"><span class="gt">Source one of the nine disputed links</span>
+      <span class="gr">9 assert a dispute, 0 carry a citation</span>
+      <span class="gn">Nine links here say a point is argued over among scholars, and none names who argues it. Until this week there was no way to fix that &mdash; the database had no path for a source to attach to one of these links. It has one now and it is empty. If you know the literature on the two resurrection strands, or on whether the vineyard parable&rsquo;s ending is later allegory, that is one citation and it closes one row.</span></div>
+    <div class="gp"><span class="gt">Judge whether a thread link earns its place</span>
+      <span class="gr">236 links, none ever deleted</span>
+      <span class="gn">Machines can check a link&rsquo;s <em>form</em> &mdash; that it does not restate its own reasoning, or its siblings, or name a chapter that is not there. All three of those checks run here and all three come back clean. Whether a link is <em>worth keeping</em> is a different question, and four attempts to automate it produced false positives rather than findings. It needs somebody willing to say &ldquo;this one is thin&rdquo;.</span></div>
+    <div class="gp"><span class="gt">Argue with it</span>
+      <span class="gr">every claim stores its counter-argument</span>
+      <span class="gn">If something here is wrong, the fix is a source, not an opinion. Contributions follow the same rules the project follows.</span></div>
+  </div>
+
+  <div class="col" style="margin-top:1.6rem">
+    <p class="lede">The rules are short and they are not negotiable, because they are the only reason any of this is worth reading: <strong>no page cited from memory. Ancient translations control wording, they never vote. Where scholarship is contested, the opposing source is stored beside the claim.</strong></p>
+  </div>
+</section>
+
+<div class="scrim" id="scrim"></div>
+<aside class="linkpanel" id="linkpanel" aria-live="polite" aria-label="Connection detail"><div class="lpi" id="lpi"></div></aside>
+<aside class="nodepanel" id="nodepanel" aria-live="polite" aria-label="Teaching detail"><div class="npi" id="npi"></div></aside>
+
+<p class="foot">
+  <span>Database <span class="mono">christian-scriptures.sqlite</span> &middot; integrity ok</span>
+  <span>Canonical score <span class="mono">formula v1.3</span> &middot; recomputable from stored evidence</span>
+  <span>Open working draft &middot; last updated 2026-09-07</span>
+  <span class="rubric">No book drafted &mdash; method and database only</span>
+  <span>18 of 106 sources independently verified</span>
+</p>
+
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
