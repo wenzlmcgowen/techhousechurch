@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 
-<link rel="stylesheet" href="style.css?v=deaf71283b">
+<link rel="stylesheet" href="style.css?v=ba4472ec7b">
 
 <div class="wrap wrap-app">
 
@@ -34,7 +34,7 @@
   <div class="shead shead-tight">
     <p class="lede">Each dot is a teaching; each ring is a work that carries it.
     <strong>Size is how many connections it has. Colour is how many independent
-    witnesses.</strong> Those two deliberately disagree &mdash; a fat node is
+    witnesses.</strong> Those two deliberately disagree &mdash; a big dot is
     well-connected, not well-attested, and telling those apart is the point.
     Click anything to open it. <a href="about.html">How this was built &rarr;</a></p>
   </div>
@@ -48,7 +48,7 @@
     </div>
     <div class="srchout" id="srchout"></div>
     <div class="plate-bar">
-      <span class="label">Lane</span>
+      <span class="label">Show</span>
       <div class="seg" role="group" aria-label="Filter lane">
         <button type="button" data-lane="teaching" aria-pressed="true">Teachings</button>
         <button type="button" data-lane="linguistic_anchor" aria-pressed="false">Aramaic anchors</button>
@@ -71,7 +71,7 @@
       <span class="key"><i style="background:#6B4235"></i>1 independent</span>
       <span class="key ring"><i></i>Witness work</span>
       <span class="spacer"></span>
-      <span>Size = number of connections &middot; colour = independent witnesses &middot; edge weight = independence of that witness</span>
+      <span>Bigger dot = more connections &middot; colour = how many independent witnesses &middot; thicker line = a more independent witness</span>
     </div>
     <div class="contraview" id="contraview">
       <div class="thwarn"><b>Every place the corpus argues with itself.</b> These are the
@@ -124,7 +124,7 @@
         <input type="range" id="dial" min="0" max="11" value="4" step="1"
                aria-label="Creative association">
         <div class="ends"><span>0 &middot; the text put these together</span>
-          <span>10 &middot; we did &nbsp;&middot;&nbsp; 11 &middot; nobody did</span></div>
+          <span>10 &middot; we drew it &nbsp;&middot;&nbsp; 11 &middot; coincidences</span></div>
         <div class="say" id="dialsay"></div>
       </div>
       <div class="thmode">
@@ -150,7 +150,7 @@
       <div id="lrows"></div>
     </div>
     <div class="readout" id="readout">
-      <p class="hint">Hover a node to inspect it.</p>
+      <p class="hint">Point at a dot to read it. Click it to open everything behind it.</p>
     </div>
   </div>
 </section>
@@ -169,8 +169,8 @@
 
 </div>
 
-<script src="data.js?v=deaf71283b"></script>
-<script src="app.js?v=deaf71283b"></script>
+<script src="data.js?v=ba4472ec7b"></script>
+<script src="app.js?v=ba4472ec7b"></script>
 
 </body>
 </html>

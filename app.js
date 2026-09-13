@@ -99,7 +99,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
       }
     });
     alpha = 1; view.init = false;
-    countsEl.textContent = nodes.length + " nodes \u00b7 " + links.length + " edges";
+    countsEl.textContent = nodes.length + " teachings and works \u00b7 " + links.length + " links";
   }
 
   function tick(){
@@ -268,7 +268,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
   }
 
   function show(n){
-    if (!n){ readout.innerHTML = '<p class="hint">Hover a node to inspect it.</p>'; return; }
+    if (!n){ readout.innerHTML = '<p class="hint">Point at a dot to read it. Click it to open everything behind it.</p>'; return; }
     if (n.type === "work"){
       const w = n.full;
       readout.innerHTML =
@@ -298,7 +298,16 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
   cv.addEventListener("click", e => {
     const r = cv.getBoundingClientRect();
     const n = pick(e.clientX - r.left, e.clientY - r.top);
-    if (n && n.type === "unit") openPanel(n.full.id);
+    if (!n) return;
+    if (n.type === "unit"){ openPanel(n.full.id); return; }
+    // A work ring showed a pointer cursor and then did nothing when clicked --
+    // the cursor promised something the click did not deliver. Clicking a work
+    // now answers the obvious question about it: what does this source carry?
+    if (n.type === "work" && n.full && n.full.title){
+      const box = document.getElementById("srch");
+      if (box){ box.value = n.full.title;
+                box.dispatchEvent(new Event("input", {bubbles:true})); }
+    }
   });
   cv.addEventListener("touchstart", e => {
     const r = cv.getBoundingClientRect(), t = e.touches[0];
@@ -407,12 +416,35 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     return q.v1 >= span.v0 && q.v0 <= span.v1;          // overlapping verses
   }
 
+  // A work is recorded two ways: DATA.works has "Gospel of Thomas", the
+  // attestations say "Thomas". Clicking the ring searched the long name and
+  // found one teaching out of thirty-nine. Match a work by IDENTITY -- resolve
+  // the query to a work id first, then use the attestation table -- so either
+  // spelling finds the same set.
+  function worksMatching(text){
+    const out = new Set();
+    for (const wid in (DATA.works || {})){
+      const w = DATA.works[wid];
+      const t = (w.title || "").toLowerCase();
+      if (!t) continue;
+      if (t === text || t.includes(text) || text.includes(t)) out.add(+wid);
+    }
+    return out;
+  }
+
   // -> [{u, why, refs:[matching attestations]}]
   function searchUnits(query){
     const q = (query || "").trim();
     if (!q) return [];
     const ref = parseRef(q);
     const text = q.toLowerCase();
+    const wids = ref ? new Set() : worksMatching(text);
+    const byWork = new Set();
+    if (wids.size){
+      (DATA.att || []).forEach(at => {
+        if (wids.has(at.work_id)) byWork.add(at.teaching_unit_id);
+      });
+    }
     const out = [];
     for (const u of DATA.units){
       const d = (DATA.detail || {})[u.id] || {};
@@ -422,13 +454,23 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
         hits = rs.filter(r => refSpans(r.ref).some(s => refHit(ref, s)));
         if (hits.length) why = "verse";
       }
+      if (!why && byWork.has(u.id)){
+        why = "work";
+        hits = rs.filter(r => wids.has(r.work_id) ||
+          [...wids].some(w => {
+            const t = ((DATA.works[w] || {}).title || "").toLowerCase();
+            return t.includes((r.work || "").toLowerCase()) ||
+                   (r.work || "").toLowerCase().includes(t);
+          }));
+      }
       if (!why){
         const hay = [u.title, d.core, d.notes, (d.tags || []).join(" "),
-                     rs.map(r => r.ref + " " + (r.en || "")).join(" ")]
+                     rs.map(r => r.work + " " + r.ref + " " + (r.en || "")).join(" ")]
                     .join(" ").toLowerCase();
         if (hay.includes(text)){
           why = "text";
-          hits = rs.filter(r => (r.ref + " " + (r.en || "")).toLowerCase().includes(text));
+          hits = rs.filter(r =>
+            (r.work + " " + r.ref + " " + (r.en || "")).toLowerCase().includes(text));
         }
       }
       // keep BOTH: every witness the teaching has, and which of them matched.
@@ -473,11 +515,19 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     });
     const links = seenPair.size;
     const ref = parseRef(SEARCH);
+    const nWork = SEARCH_HITS.filter(h => h.why === "work").length;
+    const nText = SEARCH_HITS.length - nWork;
     box.innerHTML =
-      '<div class="srchsum"><b>' + SEARCH_HITS.length + '</b> teaching' +
-        (SEARCH_HITS.length === 1 ? "" : "s") +
+      '<div class="srchsum"><b>' + (nWork || SEARCH_HITS.length) + '</b> teaching' +
+        ((nWork || SEARCH_HITS.length) === 1 ? "" : "s") +
         (ref ? (SEARCH_HITS.length === 1 ? ' carries ' : ' carry ') + esc(SEARCH)
-             : (SEARCH_HITS.length === 1 ? ' mentions ' : ' mention ') + esc(SEARCH)) +
+             : nWork
+               // "71 teachings in Mark" was an overclaim: 68 are attested there
+               // and 3 merely mention it. Carried and mentioned are different
+               // claims, so the line makes the split rather than blurring it.
+               ? ' in ' + esc(SEARCH) +
+                 (nText ? '</b>, and <b>' + nText + '</b> more that mention it' : "")
+               : (SEARCH_HITS.length === 1 ? ' mentions ' : ' mention ') + esc(SEARCH)) +
         ' · <b>' + conflicts.length + '</b> contradiction' +
         (conflicts.length === 1 ? "" : "s") +
         ' · <b>' + links + '</b> connection' + (links === 1 ? "" : "s") +
