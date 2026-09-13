@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 
-<link rel="stylesheet" href="style.css?v=29c9cd74e6">
+<link rel="stylesheet" href="style.css?v=deaf71283b">
 
 <div class="wrap wrap-app">
 
@@ -31,14 +31,22 @@
 </nav>
 
 <section>
-  <div class="shead">
-    <span class="label rubric">The graph</span>
-    <h2>Every teaching, wired to its witnesses</h2>
-    <p class="lede">Three ways in. The <strong>graph</strong> shows how teachings connect to the works that carry them. The <strong>list</strong> is the same set, ranked and searchable. <strong>Threads</strong> is different in kind &mdash; it asks how the teachings and the events hold together as a body of thought, and where they don&rsquo;t. Switch with the control top right. <strong>Click anything</strong> to open everything the database holds on that teaching &mdash; where it appears, which streams carry it, how its score was computed, and what argues against it. Each small node is a teaching; each ring is a work that carries it. <strong>Size is how many connections a node has</strong> &mdash; for a teaching, how many works carry it; for a work, how many teachings it holds. <strong>Colour is the evidence score.</strong> Those two deliberately no longer agree: a fat node is a well-connected one, not a well-attested one, and telling those apart is the whole argument of this page. Hover or tap to read it, click to open it fully.</p>
-    <p class="lede"><strong>Aramaic anchors</strong> are a separate class, added in this pass: the twelve places where an Aramaic word survives untranslated inside the Greek &mdash; <em>Talitha koum</em>, <em>Ephphatha</em>, <em>Abba</em>, <em>Korban</em>. They are evidence of an Aramaic-speaking layer in the tradition, so they are kept out of the teaching ranking entirely. Their score means &ldquo;a Semitic element is genuinely preserved here&rdquo;, never &ldquo;Jesus said this.&rdquo;</p>
+  <div class="shead shead-tight">
+    <p class="lede">Each dot is a teaching; each ring is a work that carries it.
+    <strong>Size is how many connections it has. Colour is how many independent
+    witnesses.</strong> Those two deliberately disagree &mdash; a fat node is
+    well-connected, not well-attested, and telling those apart is the point.
+    Click anything to open it. <a href="about.html">How this was built &rarr;</a></p>
   </div>
 
   <div class="plate">
+    <div class="srchbar">
+      <input id="srch" type="search" autocomplete="off"
+             placeholder="Search a verse or a word &mdash; Mark 4:35, John 11, mustard, Abba"
+             aria-label="Search verses and teachings">
+      <span class="srchhint">a reference finds every source that carries it</span>
+    </div>
+    <div class="srchout" id="srchout"></div>
     <div class="plate-bar">
       <span class="label">Lane</span>
       <div class="seg" role="group" aria-label="Filter lane">
@@ -161,8 +169,8 @@
 
 </div>
 
-<script src="data.js?v=29c9cd74e6"></script>
-<script src="app.js?v=29c9cd74e6"></script>
+<script src="data.js?v=deaf71283b"></script>
+<script src="app.js?v=deaf71283b"></script>
 
 </body>
 </html>

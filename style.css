@@ -811,3 +811,50 @@ body.sheet-open{overflow:hidden}
   font-size:.72rem;padding:.25rem .65rem;border-radius:3px;cursor:pointer}
 .lptab[aria-pressed="true"]{color:var(--ink);border-color:var(--ink-3);background:var(--rule)}
 .lptab:hover{color:var(--ink)}
+
+/* ---- search: one box, answering in whichever view you are in ------------- */
+.srchbar{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;
+  padding:.7rem 1.1rem;border-bottom:1px solid var(--plate-rule);background:var(--plate)}
+.srchbar input{flex:1;min-width:15rem;background:rgba(255,255,255,.04);
+  border:1px solid var(--plate-rule);border-radius:3px;color:var(--plate-ink);
+  font:inherit;font-size:.86rem;padding:.45rem .7rem}
+.srchbar input:focus{outline:none;border-color:#C9A227}
+.srchbar input::placeholder{color:var(--plate-ink-2);opacity:.75}
+.srchhint{font-size:.68rem;color:var(--plate-ink-2)}
+.srchout{display:none;background:var(--plate);border-bottom:1px solid var(--plate-rule);
+  max-height:19rem;overflow-y:auto}
+.srchout.on{display:block}
+.srchsum{padding:.7rem 1.1rem;font-size:.8rem;color:var(--plate-ink-2);
+  border-bottom:1px solid var(--plate-rule);display:flex;gap:.6rem;align-items:baseline}
+.srchsum b{color:#F2E4B0}
+.srchclear{margin-left:auto;background:none;border:none;color:var(--plate-ink-2);
+  font:inherit;font-size:.72rem;cursor:pointer;text-decoration:underline}
+.srchclear:hover{color:var(--plate-ink)}
+.srchnone{padding:.9rem 1.1rem;font-size:.82rem;color:var(--plate-ink-2)}
+.srchnone b{color:var(--plate-ink)}
+.srchrow{padding:.6rem 1.1rem;border-bottom:1px solid var(--plate-rule);cursor:pointer}
+.srchrow:hover{background:rgba(255,255,255,.03)}
+.srchh{display:flex;gap:.6rem;align-items:baseline;flex-wrap:wrap}
+.srcht{font-size:.9rem;color:var(--plate-ink)}
+.srchw{margin-left:auto;font-size:.72rem;color:var(--plate-ink-2)}
+.srchsrc{margin-top:.28rem;display:flex;gap:.35rem;flex-wrap:wrap}
+.srcw{font-family:"IBM Plex Mono",monospace;font-size:.66rem;color:var(--plate-ink-2);
+  border:1px solid var(--plate-rule);border-radius:2px;padding:.1rem .35rem}
+.srcw.ind{color:#C9A227;border-color:rgba(201,162,39,.45)}
+.srcw i{font-style:normal;opacity:.75}
+.srchmore{padding:.5rem 1.1rem;font-size:.72rem;color:var(--plate-ink-2)}
+.srcw.match{border-color:#C9A227;background:rgba(201,162,39,.14);color:#F2E4B0}
+
+/* search leads: it is the first thing in the plate, and the control bar below
+   it must stay one line on a phone rather than stacking into a wall of buttons */
+.srchbar{border-bottom:1px solid var(--plate-rule);border-top:0}
+@media(max-width:700px){
+  .plate-bar{gap:.4rem;padding:.5rem .7rem}
+  .plate-bar .label{display:none}
+  .srchbar{padding:.55rem .7rem}
+  .srchbar input{min-width:0;font-size:16px}   /* 16px stops iOS zooming on focus */
+  .srchhint{display:none}
+}
+/* the graph has to be the first thing, so its header is one sentence */
+.shead-tight{margin-bottom:.9rem}
+.shead-tight .lede{font-size:.88rem;line-height:1.55;max-width:78ch;margin:0}

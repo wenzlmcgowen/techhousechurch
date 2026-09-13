@@ -189,7 +189,11 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
 
     for (let i = 0; i < nodes.length; i++){
       const n = nodes[i];
-      const dim = hotIdx >= 0 && i !== hotIdx && !near.has(i);
+      // a search narrows the graph to what carries the verse; hovering still
+      // dims the rest as before, and the two compose
+      const S = window.SEARCH_IDS;
+      const offSearch = S && !(n.type === 'unit' && n.full && S.has(n.full.id));
+      const dim = offSearch || (hotIdx >= 0 && i !== hotIdx && !near.has(i));
       ctx.globalAlpha = dim ? 0.2 : 1;
       if (n.type === "work"){
         ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,6.2832);
@@ -231,7 +235,11 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     for (let i = 0; i < nodes.length; i++){
       const n = nodes[i];
       if (n.type !== "work") continue;
-      const dim = hotIdx >= 0 && i !== hotIdx && !near.has(i);
+      // a search narrows the graph to what carries the verse; hovering still
+      // dims the rest as before, and the two compose
+      const S = window.SEARCH_IDS;
+      const offSearch = S && !(n.type === 'unit' && n.full && S.has(n.full.id));
+      const dim = offSearch || (hotIdx >= 0 && i !== hotIdx && !near.has(i));
       ctx.globalAlpha = dim ? 0.28 : 1;
       const tw = ctx.measureText(n.label).width, ty = n.y + n.r + 3*wk;
       ctx.fillStyle = "rgba(14,12,8,0.82)";
@@ -304,6 +312,8 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     const cnt = document.getElementById("lcount");
     const q = (document.getElementById("lsearch").value || "").toLowerCase().trim();
     let items = DATA.units.filter(u => lane === "all" || u.lane === lane);
+    // the ranked list narrows to the search too, so all four surfaces agree
+    if (window.SEARCH_IDS) items = items.filter(u => window.SEARCH_IDS.has(u.id));
     if (q) items = items.filter(u => {
       const t = DATA.detail[u.id] || {};
       const hay = [u.title, u.unit_type, t.streams, t.core,
@@ -348,6 +358,176 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     });
   });
   window.refreshList = renderList;
+
+  // ---- search: one box, three questions -------------------------------------
+  // Wenzl asked for search in every view, over verses, and for it to answer
+  // witness verification too. Those are one feature: a verse reference resolves
+  // to teachings, a teaching carries witnesses, and the witnesses are what the
+  // connections and contradictions are built on. So the box parses a reference
+  // if it can and falls back to plain text if it cannot, and each view answers
+  // the same query in its own terms.
+  const BOOKALIAS = {mt:"matthew", mk:"mark", lk:"luke", jn:"john",
+    matt:"matthew", mrk:"mark", luk:"luke", joh:"john", thom:"thomas",
+    "1 cor":"corinthians", "1cor":"corinthians", "1 corinthians":"corinthians",
+    gal:"galatians", rom:"romans", jas:"james", heb:"hebrews", q:"q"};
+
+  function normBook(s){
+    s = String(s || "").toLowerCase().replace(/\./g, "").trim();
+    return BOOKALIAS[s] || s;
+  }
+  // "Mark 4:35-41" / "Q 10:9,11" / "1 Corinthians 15:3-8" -> {book, ch, v0, v1}
+  function parseRef(str){
+    const m = String(str || "").trim()
+      .match(/^([1-3]?\s*[A-Za-z][A-Za-z ]*?)\s*(\d+)(?::\s*(\d+)(?:\s*[-–]\s*(\d+))?)?/);
+    if (!m) return null;
+    const book = normBook(m[1]);
+    if (!book) return null;
+    return {book, ch:+m[2],
+            v0: m[3] ? +m[3] : null,
+            v1: m[4] ? +m[4] : (m[3] ? +m[3] : null)};
+  }
+  // every verse span a reference string covers, since one ref can list several
+  function refSpans(str){
+    const out = [];
+    const head = String(str || "").match(/^([1-3]?\s*[A-Za-z][A-Za-z ]*?)\s*\d/);
+    const book = head ? normBook(head[1]) : null;
+    if (!book) return out;
+    const re = /(\d+):(\d+)(?:\s*[-–]\s*(\d+))?|(?:^|[\s,;])(\d+)(?![:\d])/g;
+    let m;
+    while ((m = re.exec(str))){
+      if (m[1]) out.push({book, ch:+m[1], v0:+m[2], v1:+(m[3] || m[2])});
+      else if (m[4]) out.push({book, ch:+m[4], v0:null, v1:null});
+    }
+    return out;
+  }
+  function refHit(q, span){
+    if (span.book !== q.book) return false;
+    if (span.ch !== q.ch) return false;
+    if (q.v0 == null || span.v0 == null) return true;   // chapter-level match
+    return q.v1 >= span.v0 && q.v0 <= span.v1;          // overlapping verses
+  }
+
+  // -> [{u, why, refs:[matching attestations]}]
+  function searchUnits(query){
+    const q = (query || "").trim();
+    if (!q) return [];
+    const ref = parseRef(q);
+    const text = q.toLowerCase();
+    const out = [];
+    for (const u of DATA.units){
+      const d = (DATA.detail || {})[u.id] || {};
+      const rs = d.refs || [];
+      let hits = [], why = null;
+      if (ref){
+        hits = rs.filter(r => refSpans(r.ref).some(s => refHit(ref, s)));
+        if (hits.length) why = "verse";
+      }
+      if (!why){
+        const hay = [u.title, d.core, d.notes, (d.tags || []).join(" "),
+                     rs.map(r => r.ref + " " + (r.en || "")).join(" ")]
+                    .join(" ").toLowerCase();
+        if (hay.includes(text)){
+          why = "text";
+          hits = rs.filter(r => (r.ref + " " + (r.en || "")).toLowerCase().includes(text));
+        }
+      }
+      // keep BOTH: every witness the teaching has, and which of them matched.
+      // Showing only the matching one next to "4 references, 2 independent" reads
+      // like a contradiction -- witness verification means seeing the whole list.
+      if (why) out.push({u, why, all: d.refs || [],
+                         hit: new Set(hits.map(h => h.ref))});
+    }
+    return out;
+  }
+
+  let SEARCH = "", SEARCH_HITS = [];
+  window.searchHitIds = () => new Set(SEARCH_HITS.map(h => h.u.id));
+
+  function renderSearch(){
+    const box = document.getElementById("srchout");
+    if (!box) return;
+    SEARCH_HITS = searchUnits(SEARCH);
+    if (!SEARCH.trim()){ box.innerHTML = ""; box.classList.remove("on"); applySearch(); return; }
+    box.classList.add("on");
+    if (!SEARCH_HITS.length){
+      box.innerHTML = '<div class="srchnone">Nothing carries <b>' + esc(SEARCH) +
+        '</b>. Try a chapter on its own, like <b>Mark 4</b>, or a word like ' +
+        '<b>mustard</b>.</div>';
+      applySearch(); return;
+    }
+    const ids = new Set(SEARCH_HITS.map(h => h.u.id));
+    const T = DATA.threads || {};
+    const conflicts = (T.contra || []).filter(c => ids.has(c.a) || ids.has(c.b));
+    // Count DISTINCT relations that touch a match. The first version counted a
+    // link once per tree it appeared in and once per level it was nested at,
+    // which reported 4,496 connections in a database that holds 608.
+    const seenPair = new Set();
+    (T.roots || []).forEach(r => {
+      const walk = (parent, list) => (list || []).forEach(x => {
+        if (ids.has(parent) || ids.has(x.id)){
+          seenPair.add(parent < x.id ? parent + ":" + x.id : x.id + ":" + parent);
+        }
+        walk(x.id, x.kids);
+      });
+      walk(r.id, r.links);
+    });
+    const links = seenPair.size;
+    const ref = parseRef(SEARCH);
+    box.innerHTML =
+      '<div class="srchsum"><b>' + SEARCH_HITS.length + '</b> teaching' +
+        (SEARCH_HITS.length === 1 ? "" : "s") +
+        (ref ? (SEARCH_HITS.length === 1 ? ' carries ' : ' carry ') + esc(SEARCH)
+             : (SEARCH_HITS.length === 1 ? ' mentions ' : ' mention ') + esc(SEARCH)) +
+        ' · <b>' + conflicts.length + '</b> contradiction' +
+        (conflicts.length === 1 ? "" : "s") +
+        ' · <b>' + links + '</b> connection' + (links === 1 ? "" : "s") +
+        '<button type="button" class="srchclear" id="srchclear">clear</button></div>' +
+      SEARCH_HITS.slice(0, 12).map(h => {
+        const w = witOf(h.u.id);
+        const src = (h.all || []).map(r =>
+          '<span class="srcw' + (r.iw >= 0.8 ? " ind" : "") +
+          (h.hit && h.hit.has(r.ref) ? " match" : "") + '">' + esc(r.work) +
+          ' <i>' + esc(r.ref) + '</i></span>').join("");
+        return '<div class="srchrow" data-uid="' + h.u.id + '">' +
+          '<div class="srchh"><span class="srcht">' + esc(h.u.title) + '</span>' +
+          '<span class="srchw">' + wit(w && w.r, w && w.i) + '</span></div>' +
+          '<div class="srchsrc">' + src + '</div></div>';
+      }).join("") +
+      (SEARCH_HITS.length > 12
+        ? '<div class="srchmore">and ' + (SEARCH_HITS.length - 12) + ' more</div>' : "");
+    applySearch();
+  }
+
+  // each view answers the query in its own terms
+  function applySearch(){
+    const ids = window.searchHitIds();
+    window.SEARCH_IDS = SEARCH.trim() ? ids : null;
+    const plate = document.querySelector(".plate");
+    if (!plate) return;
+    if (plate.classList.contains("asthreads")){ renderThreads(); tgBuild(); tgResize(); }
+    else if (plate.classList.contains("aslist")) renderList();
+    else resize();
+  }
+
+  const si = document.getElementById("srch");
+  if (si){
+    let t = null;
+    si.addEventListener("input", () => {
+      SEARCH = si.value;
+      clearTimeout(t); t = setTimeout(renderSearch, 160);
+    });
+    si.addEventListener("keydown", e => { if (e.key === "Escape"){ si.value=""; SEARCH=""; renderSearch(); } });
+  }
+  document.addEventListener("click", e => {
+    if (e.target && e.target.id === "srchclear"){
+      const s = document.getElementById("srch");
+      if (s) s.value = "";
+      SEARCH = ""; renderSearch(); return;
+    }
+    const row = e.target.closest(".srchrow");
+    if (row){ openPanel(+row.dataset.uid); }
+  });
+
 
   // Three views, named for what a reader wants rather than for how the page is
   // built. "Connected teachings" and "Contradictions" are the same graph in two
@@ -986,10 +1166,15 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     const want = lt => TG.mode === "conf" ? lt === "tensions_with"
                                           : lt !== "tensions_with";
     const seen = new Set();
+    // With a search running, keep only the relations that TOUCH a match. Both
+    // ends stay drawn, because a connection to a teaching you did not search
+    // for is the answer to "what does this verse connect to".
+    const S = window.SEARCH_IDS;
     const push = (a, b, lt, assoc) => {
       if (!want(lt)) return;
       if ((assoc == null ? 5 : assoc) > THDIAL) return;
       if (!inSrc(a) || !inSrc(b)) return;
+      if (S && !S.has(a) && !S.has(b)) return;
       const k = a < b ? a + ":" + b : b + ":" + a;
       if (seen.has(k)) return; seen.add(k);
       const i = add(a), j = add(b);
@@ -1007,7 +1192,8 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     TG.nodes = nodes; TG.links = links; TG.alpha = 1; TG.view.init = false;
     const m = document.getElementById("thmn");
     if (m) m.textContent = nodes.length + " teachings \u00b7 " + links.length +
-      (TG.mode === "conf" ? " conflicts" : " connections");
+      (TG.mode === "conf" ? " conflicts" : " connections") +
+      (S ? " touching your search" : "");
   }
 
   function tgResize(){
