@@ -245,10 +245,15 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
 
   function pick(mx,my){
     const x = (mx - W/2)/view.s + view.cx, y = (my - H/2)/view.s + view.cy;
-    let best = null, bd = (14/view.s)*(14/view.s);
+    // A teaching with one witness draws as a very small circle, and the old
+    // tolerance was the radius plus three pixels -- which on a phone is a target
+    // smaller than a fingertip. The forgiving radius below costs nothing: the
+    // nearest node still wins, so a generous catchment only helps you hit the
+    // one you were aiming at.
+    let best = null, bd = (22/view.s)*(22/view.s);
     for (const n of nodes){
       const dx = n.x - x, dy = n.y - y, d = dx*dx + dy*dy;
-      const rr = Math.max(n.r + 3, 6/view.s);
+      const rr = Math.max(n.r + 7, 12/view.s);
       if (d < rr*rr && d < bd){ bd = d; best = n; }
     }
     return best;
@@ -434,10 +439,26 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
   }
   window.closeLinkPanel = closeLinkPanel;
 
-  function lpHead(L){
+  // The explanation used to REPLACE the thread with no way back, and once you
+  // were in it the "full quotes" button was gone too -- so a reader who pressed
+  // Explain first lost both the thread and the quotes and had to start over.
+  // The panel now carries a back arrow to the thread it came from and a toggle
+  // between the two readings, so neither is a dead end.
+  function lpHead(L, mode){
     const A = DATA.detail[L.a] || {}, B = DATA.detail[L.b] || {};
-    return '<span class="npnav"><button type="button" onclick="closeLinkPanel()">' +
-        'close</button></span>' +
+    const back = (typeof TG !== "undefined" && TG.sel != null)
+      ? '<button type="button" class="lpbackbtn" onclick="backToThread()">' +
+        '\u2190 back to the thread</button>' : "";
+    const tabs = '<span class="lptabs">' +
+      '<button type="button" class="lptab" data-lpmode="why"' +
+        (mode !== "quotes" ? ' aria-pressed="true"' : ' aria-pressed="false"') +
+        '>Explanation</button>' +
+      '<button type="button" class="lptab" data-lpmode="quotes"' +
+        (mode === "quotes" ? ' aria-pressed="true"' : ' aria-pressed="false"') +
+        '>Full quotes</button></span>';
+    return '<span class="npnav">' + back +
+        '<button type="button" onclick="closeLinkPanel()">close</button></span>' +
+      tabs +
       '<h3 class="lph">' + esc(A.title || "") + '</h3>' +
       '<div class="lpvs">' + esc(LT[L.lt] || L.lt) + '</div>' +
       '<h3 class="lph">' + esc(B.title || "") + '</h3>' +
@@ -446,7 +467,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
 
   function openLinkWhy(L){
     const A = DATA.detail[L.a] || {}, B = DATA.detail[L.b] || {};
-    let s = lpHead(L) +
+    let s = lpHead(L, 'why') +
       '<div class="lpsec"><h4>What this relation claims</h4><p>' +
         esc(LTLONG[L.lt] || "") + '</p></div>' +
       '<div class="lpsec"><h4>Why</h4><p>' + esc(L.why || "") + '</p></div>' +
@@ -504,7 +525,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
 
   function openLinkQuotes(L){
     const A = DATA.detail[L.a] || {}, B = DATA.detail[L.b] || {};
-    return lpHead(L) +
+    return lpHead(L, 'quotes') +
       '<div class="lpsec"><h4>Read both sides</h4>' +
         '<div class="langbar"><span class="seg" role="group" aria-label="Language">' +
         '<button type="button" data-lplang="en" aria-pressed="' + (PANEL_LANG==="en") +
@@ -530,7 +551,13 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     if (sc) sc.classList.add("open");
     el.scrollTop = 0;
   }
+  window.backToThread = function(){
+    if (typeof TG === "undefined" || TG.sel == null) return closeLinkPanel();
+    openThreadSheet(TG.sel);
+  };
   document.addEventListener("click", e => {
+    const tb = e.target.closest("[data-lpmode]");
+    if (tb && LP_LAST){ openLink(LP_LAST[0], tb.dataset.lpmode); return; }
     const b = e.target.closest("[data-li]");
     if (b){ openLink(+b.dataset.li, b.dataset.mode); return; }
     const lang = e.target.closest("[data-lplang]");
@@ -1101,7 +1128,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     let best = null, bd = Infinity;
     TG.nodes.forEach(n => {
       const dx = n.x-x, dy = n.y-y, d = dx*dx + dy*dy;
-      const rr = Math.max(n.r + 4, 9/v.s);
+      const rr = Math.max(n.r + 7, 13/v.s);   // forgiving, same reason as pick()
       if (d < rr*rr && d < bd){ bd = d; best = n; }
     });
     return best;
@@ -1271,7 +1298,16 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
 })();
 
 /* == 2. ladder ========================================= */
-(function(){
+// Each block below renders one figure into one element. Those elements live on
+// the About page; this file is also loaded by the graph page, where they do not
+// exist. A block that does not stand down there throws, and because these are
+// top-level statements the throw stops every statement AFTER it -- which is how
+// a missing essay table left PANEL_ID uninitialised and made every teaching in
+// the graph unclickable. One missing guard, and the page looked fine but was
+// dead from the first click.
+
+(function(){ try {
+  if (!document.getElementById("ladder")) return;   // not on this page
   const el = document.getElementById("ladder");
   const rows = DATA.units.filter(u => u.rel != null).sort((a,b) => b.rel - a.rel).slice(0,24);
   el.innerHTML = rows.map(u => {
@@ -1291,10 +1327,11 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     const b = e.target.closest(".rung");
     if (b && b.dataset.uid) openPanel(+b.dataset.uid);
   });
-})();
+} catch(err){ console.warn("figure block 1 did not render:", err.message); } })();
 
 /* == 3. slope chart ==================================== */
-(function(){
+(function(){ try {
+  if (!document.getElementById("slope")) return;   // not on this page
   const cv = document.getElementById("slope"), ctx = cv.getContext("2d");
   const rows = DATA.units.filter(u => u.rel != null)
     .map(u => ({...u, d: u.rel - u.probability_score}))
@@ -1398,10 +1435,11 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
   draw();
   document.fonts && document.fonts.ready.then(draw);
-})();
+} catch(err){ console.warn("figure block 2 did not render:", err.message); } })();
 
 /* == 4. streams table ================================== */
-(function(){
+(function(){ try {
+  if (!document.getElementById("streams")) return;   // not on this page
   const agg = {};
   DATA.att.forEach(a => {
     const g = agg[a.work_id] || (agg[a.work_id] = {n:0, w:0});
@@ -1417,10 +1455,10 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     '<td class="num"><span class="bar-mini" style="width:' + Math.max(2,(r.n/max)*70).toFixed(0) + 'px"></span>' + r.n + '</td>' +
     '<td class="num">' + r.ind.toFixed(2) + '</td></tr>'
   ).join("");
-})();
+} catch(err){ console.warn("figure block 3 did not render:", err.message); } })();
 
 /* == 4b. redaction pairs =============================== */
-(function(){
+(function(){ try {
   const row = document.getElementById("deprow"), box = document.getElementById("pairs");
   if (!box || !DATA.pairs) return;
   const ORDER = ["likely_dependent","possibly_dependent","unresolved","reception_echo",
@@ -1436,10 +1474,10 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
       (p.ao ? '<p class="chg">' + esc(p.ao) + '</p>' : '') +
       '<p class="sh">' + esc(p.shift) + '</p>' +
     '</div>').join("");
-})();
+} catch(err){ console.warn("figure block 4 did not render:", err.message); } })();
 
 /* == 2a. coverage gaps ================================= */
-(function(){
+(function(){ try {
   const el = document.getElementById("gaps2");
   if (!el || !DATA.gaps) return;
   el.innerHTML = DATA.gaps.map(g =>
@@ -1447,10 +1485,10 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     '<span class="gr">' + esc(g.refs) + '</span>' +
     '<span class="chip">' + esc(g.streams) + '</span>' +
     '<span class="gn">' + esc(g.note) + '</span></div>').join("");
-})();
+} catch(err){ console.warn("figure block 5 did not render:", err.message); } })();
 
 /* == 2b. attribution risk ============================== */
-(function(){
+(function(){ try {
   const el = document.getElementById("arisk");
   if (!el || !DATA.ar) return;
   el.innerHTML = DATA.ar.map(r =>
@@ -1462,10 +1500,11 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
       '<p class="obs">' + esc(r.obs) + '</p>' +
       '<p class="inf">' + esc(r.inf) + '</p>' +
     '</div>').join("");
-})();
+} catch(err){ console.warn("figure block 6 did not render:", err.message); } })();
 
 /* == 2c. formula versions, flags, registry ============= */
-(function(){
+(function(){ try {
+  if (!document.getElementById("vers")) return;   // not on this page
   const vt = document.getElementById("vers");
   if (vt && DATA.vers) vt.innerHTML = DATA.vers.map(v =>
     '<tr class="' + (v.win ? 'win' : '') + '"><td class="mono">' + esc(v.v) + '</td>' +
@@ -1482,10 +1521,10 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
       esc(r.status.replace(/_/g," ")) + '</span>' +
       '<span class="rn">' + esc(r.score_name) + '</span></div>' +
     '<p>' + esc(r.ruling) + '</p></div>').join("");
-})();
+} catch(err){ console.warn("figure block 7 did not render:", err.message); } })();
 
 /* == 3a. score audit =================================== */
-(function(){
+(function(){ try {
   const el = document.getElementById("sq");
   if (!el || !DATA.sq) return;
   ["sagree","slo","shi"].forEach((k,i) => {
@@ -1502,10 +1541,10 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
       '<span class="sx">' + esc(r.expl) + '</span>' +
     '</div>';
   }).join("");
-})();
+} catch(err){ console.warn("figure block 8 did not render:", err.message); } })();
 
 /* == 3b. abba ========================================== */
-(function(){
+(function(){ try {
   const el = document.getElementById("abba");
   if (!el || !DATA.abba) return;
   el.innerHTML = DATA.abba.map(f => {
@@ -1525,10 +1564,10 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     while (p.length > 1 && /^(Jr\.?|Sr\.?|I{1,3}|IV)$/i.test(p[p.length-1])) p.pop();
     return p[p.length-1];
   }
-})();
+} catch(err){ console.warn("figure block 9 did not render:", err.message); } })();
 
 /* == 4a. bundle audit ================================== */
-(function(){
+(function(){ try {
   const box = document.getElementById("bundles");
   if (!box || !DATA.uc) return;
   document.getElementById("ucb").textContent = DATA.ucb;
@@ -1543,10 +1582,10 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
       '<p class="nt">' + esc(u.note) + '</p>' +
       '<p class="act">' + esc(u.act) + '</p>' +
     '</div>').join("");
-})();
+} catch(err){ console.warn("figure block 10 did not render:", err.message); } })();
 
 /* == 4c. version readings ============================== */
-(function(){
+(function(){ try {
   const tb = document.getElementById("vrows");
   if (!tb || !DATA.vr) return;
   tb.innerHTML = DATA.vr.map(v =>
@@ -1558,10 +1597,10 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
   const n = document.getElementById("vqnote");
   if (n) n.textContent = "Plus " + DATA.vq + " substrate-control questions queued against Kiraz's " +
     "Comparative Edition \u2014 written as questions, not readings, because nobody has opened that volume yet.";
-})();
+} catch(err){ console.warn("figure block 11 did not render:", err.message); } })();
 
 /* == 5. bibliography lanes ============================= */
-(function(){
+(function(){ try {
   const el = document.getElementById("lanes");
   if (!el || !DATA.lanes) return;
   const max = Math.max(...DATA.lanes.map(l => l.n));
@@ -1573,10 +1612,10 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     '<div class="lanerow"><span class="ln">' + esc(NAME[l.lane] || l.lane) + '</span>' +
     '<span class="lc">' + l.n + '</span>' +
     '<span class="lb"><i style="width:' + ((l.n/max)*100).toFixed(0) + '%"></i></span></div>').join("");
-})();
+} catch(err){ console.warn("figure block 12 did not render:", err.message); } })();
 
 /* == 6. substrate feature explorer ===================== */
-(function(){
+(function(){ try {
   const list = document.getElementById("featlist"), detail = document.getElementById("featdetail");
   if (!list || !DATA.feats) return;
   const F = DATA.feats;
@@ -1612,10 +1651,10 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     show(+b.dataset.i);
   });
   show(0);
-})();
+} catch(err){ console.warn("figure block 13 did not render:", err.message); } })();
 
 /* == 7. method rules =================================== */
-(function(){
+(function(){ try {
   // "Dale C. Allison Jr." must render as Allison, not Jr.
   function surname(a){
     const p = a.split(/ and |,/)[0].trim().split(/\s+/);
@@ -1634,7 +1673,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
       '<p class="claim">' + esc(r.claim) + '</p>' +
       '<div class="rc">' + bits + '</div></div>';
   }).join("");
-})();
+} catch(err){ console.warn("figure block 14 did not render:", err.message); } })();
 
 /* == where to actually read the text ==================
    Nothing is stored here. These point outward: public-domain English,

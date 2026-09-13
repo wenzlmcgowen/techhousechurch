@@ -801,3 +801,13 @@ body.sheet-open{overflow:hidden}
   .appname{font-size:1.1rem;width:100%}
   .backlink{margin-left:auto}
 }
+
+/* the link panel is reachable in both directions now */
+.lpbackbtn{background:none;border:none;color:var(--ink-2);font:inherit;font-size:.78rem;
+  cursor:pointer;padding:0 .6rem 0 0}
+.lpbackbtn:hover{color:var(--ink)}
+.lptabs{display:flex;gap:.4rem;margin:.2rem 0 .8rem}
+.lptab{background:none;border:1px solid var(--rule);color:var(--ink-3);font:inherit;
+  font-size:.72rem;padding:.25rem .65rem;border-radius:3px;cursor:pointer}
+.lptab[aria-pressed="true"]{color:var(--ink);border-color:var(--ink-3);background:var(--rule)}
+.lptab:hover{color:var(--ink)}
