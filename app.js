@@ -600,7 +600,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
       renderThreads(); tgBuild(); tgResize();
       const f = document.getElementById("tgfoot");
       if (f) f.textContent = TG.mode === "conf"
-        ? "Every pair that pulls against itself. Tap either end to light it up."
+        ? "Each line joins two teachings that cannot both stand as they are. Tap either end to see what the problem is."
         : "Teachings that support, extend or depend on each other. Tap one to light it up.";
     } else {
       resize();
@@ -629,23 +629,38 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
               anchors:"keeps the Aramaic"};
   // What each relation is actually asserting, spelled out. The row shows the
   // short label because it has to fit; the panel has room to say what it means.
+  // These are the six words the site uses for how two teachings relate, and the
+  // three words for how sure we are. They were written tight and read like a
+  // reference manual. Rewritten longer and plainer: say the concrete thing
+  // first, one idea per sentence, and name who is doing what.
   const LTLONG = {
-    illustrates:"The second makes the first concrete \u2014 the same point as a story, " +
-      "an image or a case rather than a statement.",
-    extends:"The second takes the first further than the first goes on its own.",
-    presupposes:"The first does not make sense unless the second is true. Remove the " +
-      "second and the first becomes unintelligible rather than merely harder.",
-    qualifies:"The second narrows, conditions or complicates the first.",
-    tensions_with:"The two pull against each other. This is not resolved here, by us " +
-      "or by the sources.",
-    anchors:"An untranslated Aramaic word survives inside this teaching. That is a " +
-      "fact about how the text was carried, not a reading of what it means."};
+    illustrates:"One of these two is the idea, and the other is the idea shown " +
+      "happening. A story, a picture or a real case, instead of a statement. " +
+      "Neither one adds a new claim \u2014 the second just makes the first easier " +
+      "to see.",
+    extends:"The second one carries the first one further than it goes by itself. " +
+      "It agrees with it, and then keeps going past where the first one stopped.",
+    presupposes:"The first one only makes sense if the second one is already " +
+      "true. Take the second one away and the first stops meaning anything at " +
+      "all \u2014 not harder to follow, but empty.",
+    qualifies:"The second one puts a limit on the first. It adds an exception, a " +
+      "condition, or a case where the first one would not apply.",
+    tensions_with:"These two cannot both be followed, or both be true, as they " +
+      "stand. One says something the other rules out. Nobody resolves it \u2014 " +
+      "not the writers who left them side by side, and not us. We are pointing " +
+      "at the problem, not fixing it.",
+    anchors:"An Aramaic word survived here without being translated into Greek. " +
+      "That tells you something about how these words were passed along. It tells " +
+      "you nothing about whether the teaching is true."};
   const STLONG = {
-    textual:"Checkable. You can open the book and verify the claim without trusting us.",
-    contested:"We assert this point is argued over among scholars \u2014 and you have " +
-      "only our word for that. No citation in this database attaches to a link in " +
-      "this layer.",
-    ours:"Our own reading. Nothing behind it but judgement."};
+    textual:"You can check this yourself. Open the books, read the passages, and " +
+      "see whether what we said is there. You do not have to take our word for it.",
+    contested:"We are telling you that scholars disagree about this \u2014 and we " +
+      "have not named a single one of them. No source in this database backs this " +
+      "up. You have only our say-so, and that is not good enough, which is why it " +
+      "is labelled.",
+    ours:"This is our own reading. Nobody said it before us, and there is no " +
+      "evidence behind it beyond our judgement. Treat it as an opinion."};
   const LK = [];   // every rendered link, so a button can find its own data
 
   function lkRegister(a, b, l){
@@ -944,8 +959,20 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
     if (sc) sc.classList.remove("open");
     const f = document.getElementById("tgfoot");
     if (f) f.textContent = TG.mode === "conf"
-      ? "Every pair that pulls against itself. Tap either end to light it up."
+      ? "Each line joins two teachings that cannot both stand as they are. Tap either end to see what the problem is."
       : "Teachings that support, extend or depend on each other. Tap one to light it up.";
+  }
+
+  // "severity 9" means nothing to a reader. Say what the number claims.
+  function sevPlain(sev){
+    if (sev == null) return "Not scored yet.";
+    if (sev >= 8) return "Hard to explain away. Both sides rest on good evidence, " +
+      "so you cannot make the problem disappear by doubting one of them. To do that " +
+      "you would have to throw out evidence the rest of this database leans on.";
+    if (sev >= 5) return "Real, but escapable. The clash is genuine. If you doubt " +
+      "the weaker of the two passages, it loosens.";
+    return "Comes apart under doubt. One side rests on thin evidence. Question " +
+      "that side and most of the problem goes away, which is why it ranks low.";
   }
 
   function openThreadSheet(uid, label){
@@ -976,15 +1003,28 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
             const meA = c.a === uid;
             const ot = meA ? c.bt : c.at, oi = meA ? c.b : c.a;
             const ow = witOf(oi);
+            // A contradiction was one paragraph and a number. A reader had to
+            // work out which two things clashed, what the clash was, and what
+            // "severity 9" was supposed to mean. The parts are now named.
             return '<div class="cfrow">' +
-              '<div class="cfh"><span class="cfs" style="background:' +
-                (meA ? SIDE[1] : SIDE[2]) + '"></span>' +
-              '<span class="cfn" data-uid="' + oi + '">' + esc(ot) + '</span>' +
-              '<span class="cfw">' + wit(ow && ow.r, ow && ow.i) + '</span></div>' +
-              '<p class="cfy">' + esc(c.why) + '</p>' +
-              (c.adds ? '<p class="cfa">' + esc(c.adds) + '</p>' : '') +
-              '<div class="cfm">' + esc(c.ab || "") +
-                (c.sev != null ? ' \u00b7 severity ' + c.sev : '') + '</div>' +
+              '<div class="cfpair">' +
+                '<span class="cfs" style="background:' + (meA ? SIDE[1] : SIDE[2]) +
+                  '"></span>' +
+                '<span class="cfvs">this one clashes with</span>' +
+                '<span class="cfn" data-uid="' + oi + '">' + esc(ot) + '</span>' +
+                '<span class="cfw">' + wit(ow && ow.r, ow && ow.i) + '</span>' +
+              '</div>' +
+              '<div class="cfpart"><b>What the problem is</b>' +
+                '<p>' + esc(c.why) + '</p></div>' +
+              (c.adds ? '<div class="cfpart"><b>Why that matters</b>' +
+                '<p>' + esc(c.adds) + '</p></div>' : "") +
+              '<div class="cfpart"><b>How hard it is to explain away</b>' +
+                '<p>' + sevPlain(c.sev) + '</p></div>' +
+              // this field is a description of HOW the pair was found, not where
+              // they sit, so it cannot be glued onto the end of another sentence
+              (c.ab ? '<div class="cfpart"><b>How we found this pair</b>' +
+                '<p>' + esc(c.ab.charAt(0).toUpperCase() + c.ab.slice(1)) +
+                '.</p></div>' : "") +
             '</div>';
           }).join("")
         : '<div class="lph">No contradiction recorded for this teaching.</div>');
@@ -1410,7 +1450,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
       THFOCUS = null; renderThreads();
       const f = document.getElementById("tgfoot");
       if (f) f.textContent = TG.mode === "conf"
-        ? "Every pair that pulls against itself. The two ends of a clash are red and green \u2014 the same teaching is red in one conflict and green in another, so neither colour means the right one. Tap either to open the thread."
+        ? "Each line joins two teachings that cannot both stand as they are. One end is red and the other green so you can tell them apart at a glance \u2014 that is all the colours mean. Red is not the wrong one. The same teaching turns up red in one clash and green in another. Tap either end to read what the problem is."
         : "Teachings that support, extend or depend on each other. Tap one to open its thread.";
     });
   });
