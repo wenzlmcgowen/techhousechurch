@@ -1321,6 +1321,12 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
   const SIDE = {1:"#E07A61", 2:"#7CC8A8"};
   function tgDraw(){
     const ctx = TG.ctx; if (!ctx) return;
+    // A canvas can have zero width -- a tab that loads while hidden, or a
+    // container that has not been laid out yet. The camera fit then divides by
+    // a zero span, the scale comes out negative, and every arc() call throws on
+    // a negative radius. Nothing a normal visitor sees, but a hidden tab does,
+    // and a console full of exceptions hides real ones.
+    if (!TG.W || !TG.H) return;
     const N = TG.nodes, v = TG.view;
     ctx.save(); ctx.scale(TG.dpr, TG.dpr);
     ctx.clearRect(0, 0, TG.W, TG.H);
@@ -1336,7 +1342,7 @@ const PLATE_INK = "#E7E2D6", PLATE_DIM = "#9C9384";
       N.forEach(n => { x0=Math.min(x0,n.x-n.r); x1=Math.max(x1,n.x+n.r);
                        y0=Math.min(y0,n.y-n.r); y1=Math.max(y1,n.y+n.r); });
       const m=26, bw=Math.max(1,x1-x0), bh=Math.max(1,y1-y0);
-      v.s = Math.min((TG.W-m*2)/bw, (TG.H-m*2)/bh, 1.7);
+      v.s = Math.max(0.05, Math.min((TG.W-m*2)/bw, (TG.H-m*2)/bh, 1.7));
       v.x = TG.W/2 - ((x0+x1)/2)*v.s; v.y = TG.H/2 - ((y0+y1)/2)*v.s;
       v.init = true;
     }
